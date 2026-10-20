@@ -1,5 +1,5 @@
 import { getDb } from '../utils/db'
-import { getLlmConfig, isLlmConfigured } from '../utils/llm'
+import { getLlmConfig, getStoredLlmState, isLlmConfigured } from '../utils/llm'
 import {
   envNetflixSyncIntervalHours,
   getNetflixSyncInterval,
@@ -8,12 +8,16 @@ import {
   STREMIO_SYNC_INTERVAL_HOURS,
 } from '../utils/sync-helpers'
 import { seriesRows } from '../utils/series-filter'
-import { getIngestToken } from '../utils/ingest-token'
+import { getIngestTokenState } from '../utils/ingest-token'
+import { getSecretConfig } from '../utils/secrets'
 import { CHART_REGIONS, getHomeLayout } from '../utils/home-layout'
 import { getLocaleConfig, isLocaleConfigured, SUPPORTED_LOCALES } from '../utils/locale'
 import { ONBOARDING_DISMISSED_KEY } from '../utils/onboarding'
-import { getTmdbKey, getTmdbKeySource } from '../utils/tmdb'
+import { getStoredTmdbKeyState, getTmdbKey, getTmdbKeySource } from '../utils/tmdb'
 
+// La maschera si calcola sempre dal valore decifrato: al browser non arrivano mai né il
+// segreto in chiaro né il testo cifrato. Un segreto non decifrabile risulta non configurato
+// (secret_unreadable: la UI chiede di reinserirlo).
 function maskSecret(val: string | null | undefined): string {
   if (!val || val.length === 0) return ''
   if (val.length <= 8) return '••••••••'
@@ -40,8 +44,11 @@ export default defineEventHandler(() => {
   // Config LLM effettiva (DB → env)
   const llmConfig = getLlmConfig()
 
-  const stremioAuthKey = configMap.stremio_auth_key || ''
-  const netflixCookies = configMap.netflix_cookies || ''
+  const stremio = getSecretConfig('stremio_auth_key', db)
+  const netflix = getSecretConfig('netflix_cookies', db)
+  const stremioAuthKey = stremio.value
+  const netflixCookies = netflix.value
+  const ingestToken = getIngestTokenState()
   const locale = getLocaleConfig(db)
   const tmdbKey = getTmdbKey()
   const netflixInterval = getNetflixSyncInterval()
@@ -62,17 +69,20 @@ export default defineEventHandler(() => {
       masked_api_key: maskSecret(llmConfig.api_key),
       // Pronto per le chiamate (chiave, o provider locale): stesse regole di assertLlmConfig
       configured: isLlmConfigured(llmConfig),
+      secret_unreadable: getStoredLlmState().apiKeyUnreadable,
     },
     // Chiave TMDB effettiva (DB → env): solo stato e versione mascherata, mai la chiave
     tmdb: {
       has_api_key: Boolean(tmdbKey),
       masked_api_key: maskSecret(tmdbKey),
       source: getTmdbKeySource(),
+      secret_unreadable: getStoredTmdbKeyState().unreadable,
     },
     sync: {
       stremio: {
         has_auth_key: Boolean(stremioAuthKey),
         masked_auth_key: maskSecret(stremioAuthKey),
+        secret_unreadable: stremio.unreadable,
         // Esito ultima sync (manuale o automatica): { ok, at, message }
         last_status: parseJson(configMap.last_sync_status_stremio),
         // Prossima sync automatica prevista (lo scheduler controlla ogni ora)
@@ -81,6 +91,7 @@ export default defineEventHandler(() => {
       netflix: {
         has_cookies: Boolean(netflixCookies),
         masked_cookies: maskSecret(netflixCookies),
+        secret_unreadable: netflix.unreadable,
         // Esito ultima sync (manuale o automatica): { ok, at, message }
         last_status: parseJson(configMap.last_sync_status_netflix),
         // Intervallo della sync automatica: DB (Impostazioni) → env SYNC_INTERVAL_HOURS → 12
@@ -93,7 +104,8 @@ export default defineEventHandler(() => {
       // Token del bookmarklet: serve alla UI per generarne il codice (le Impostazioni sono
       // protette da WATCHSENSE_TOKEN, se impostato); esito dell'ultimo invio
       bookmarklet: {
-        ingest_token: getIngestToken(),
+        ingest_token: ingestToken.value,
+        secret_unreadable: ingestToken.unreadable,
         last_status: parseJson(configMap.last_sync_status_bookmarklet),
       },
       platforms,

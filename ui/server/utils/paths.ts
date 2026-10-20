@@ -28,3 +28,15 @@ export function getExportsDir(): string {
   const fromEnv = process.env.EXPORTS_PATH?.trim()
   return fromEnv ? resolve(fromEnv) : join(findProjectRoot(), 'exports')
 }
+
+// File del database SQLite: DATABASE_PATH oppure <root>/data/watchsense.db.
+export function getDatabasePath(): string {
+  return process.env.DATABASE_PATH
+    ? resolve(process.env.DATABASE_PATH.trim())
+    : join(findProjectRoot(), 'data', 'watchsense.db')
+}
+
+/** Cartella dati di default (<root>/data): l'unica di cui si restringono i permessi. */
+export function getDefaultDataDir(): string {
+  return join(findProjectRoot(), 'data')
+}

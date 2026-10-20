@@ -1,4 +1,5 @@
 import { getDb } from '../../utils/db'
+import { getSecretConfig } from '../../utils/secrets'
 import { setSyncStatus } from '../../utils/sync-helpers'
 import { moviesNoteParts, runIngest, type IngestResult, type IngestRow } from '../../utils/ingest'
 import { userError, userMessage, type UserMessage } from '../../utils/user-message'
@@ -24,8 +25,7 @@ export default defineEventHandler(async (event) => {
   // Retrieve authKey from request or DB
   let authKey = body.authKey?.trim()
   if (!authKey) {
-    const row = db.prepare("SELECT value FROM config WHERE key = 'stremio_auth_key'").get() as { value: string } | undefined
-    authKey = row?.value || ''
+    authKey = getSecretConfig('stremio_auth_key', db).value
   }
 
   if (!authKey) {

@@ -15,13 +15,22 @@ vi.stubGlobal('createError', createError)
 vi.stubGlobal('fetch', vi.fn())
 
 const { getDb } = await import('../server/utils/db')
+const { decryptSecret } = await import('../server/utils/secret-key')
 const login = (await import('../server/api/sync/stremio-login.post')).default as any
 const getConfig = (await import('../server/api/config.get')).default as any
 
 const PASSWORD = 'hunter2-secret-pw'
 const AUTH_KEY = 'stremio-auth-key-0123456789'
 const fetchMock = () => vi.mocked(fetch)
-const storedKey = () => (getDb().prepare("SELECT value FROM config WHERE key = 'stremio_auth_key'").get() as { value: string } | undefined)?.value
+const storedRaw = () => (getDb().prepare("SELECT value FROM config WHERE key = 'stremio_auth_key'").get() as { value: string } | undefined)?.value
+/** Valore salvato, decifrato; il valore grezzo deve essere cifrato (o vuoto). */
+const storedKey = () => {
+  const raw = storedRaw()
+  if (raw === undefined || raw === '') return raw
+  expect(raw.startsWith('enc:v1:')).toBe(true)
+  const res = decryptSecret(raw)
+  return res.ok ? res.value : '<unreadable>'
+}
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
 
 /** Errore h3 lanciato da `fn` (fallisce se non lancia). */

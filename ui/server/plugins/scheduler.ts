@@ -1,6 +1,7 @@
 import { getDb } from '../utils/db'
 import { setSyncStatus, getNetflixSyncIntervalHours, STREMIO_SYNC_INTERVAL_HOURS } from '../utils/sync-helpers'
 import { internalAuthHeaders } from '../utils/auth'
+import { getSecretConfig } from '../utils/secrets'
 
 export default defineNitroPlugin(() => {
   // Background sync worker (runs inside the Nitro server).
@@ -35,7 +36,7 @@ export default defineNitroPlugin(() => {
 
       // ── Netflix ──
       if (isDue('last_cron_netflix', getNetflixSyncIntervalHours() * ONE_HOUR)) {
-        const cookies = getConfig('netflix_cookies')
+        const cookies = getSecretConfig('netflix_cookies', db).value
         if (cookies) {
           console.log('[WatchSense Scheduler] Avvio sincronizzazione Netflix automatica...')
           try {
@@ -57,7 +58,7 @@ export default defineNitroPlugin(() => {
 
       // ── Stremio ──
       if (isDue('last_cron_stremio', STREMIO_SYNC_INTERVAL_HOURS * ONE_HOUR)) {
-        const authKey = getConfig('stremio_auth_key')
+        const authKey = getSecretConfig('stremio_auth_key', db).value
         if (authKey) {
           console.log('[WatchSense Scheduler] Avvio sincronizzazione Stremio automatica...')
           try {

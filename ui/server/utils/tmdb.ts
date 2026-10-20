@@ -4,6 +4,7 @@ import { getLocaleConfig } from './locale'
 import type Database from 'better-sqlite3'
 import { getDb } from './db'
 import { airedEpisodeCount } from './watch-status'
+import { readSecretValue, type SecretRead } from './secrets'
 
 /** Chiave in `config` della chiave TMDB salvata dalle Impostazioni. */
 export const TMDB_KEY_CONFIG_KEY = 'tmdb_api_key'
@@ -16,8 +17,9 @@ export function isValidTmdbKey(value: string): boolean {
 // getTmdbKey() si chiama spesso: lo statement si prepara una volta per connessione
 const keyStmtCache = new WeakMap<Database.Database, Database.Statement>()
 
-/** Chiave TMDB salvata in DB dalle Impostazioni ('' se assente o DB non leggibile). */
-export function getStoredTmdbKey(): string {
+/** Chiave TMDB salvata in DB dalle Impostazioni, decifrata (unreadable = chiave dei segreti cambiata). */
+export function getStoredTmdbKeyState(): SecretRead {
+  let stored: string | undefined
   try {
     const db = getDb()
     let stmt = keyStmtCache.get(db)
@@ -25,11 +27,17 @@ export function getStoredTmdbKey(): string {
       stmt = db.prepare('SELECT value FROM config WHERE key = ?')
       keyStmtCache.set(db, stmt)
     }
-    const row = stmt.get(TMDB_KEY_CONFIG_KEY) as { value: string } | undefined
-    return row?.value?.trim() || ''
+    stored = (stmt.get(TMDB_KEY_CONFIG_KEY) as { value: string } | undefined)?.value
   } catch {
-    return ''
+    return { value: '', unreadable: false }
   }
+  const res = readSecretValue(TMDB_KEY_CONFIG_KEY, stored)
+  return { value: res.value.trim(), unreadable: res.unreadable }
+}
+
+/** Chiave TMDB salvata in DB dalle Impostazioni ('' se assente, non decifrabile o DB non leggibile). */
+export function getStoredTmdbKey(): string {
+  return getStoredTmdbKeyState().value
 }
 
 /** Da dove arriva la chiave TMDB effettiva. */

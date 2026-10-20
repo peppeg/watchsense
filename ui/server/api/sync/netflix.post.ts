@@ -2,6 +2,7 @@ import { getDb } from '../../utils/db'
 import { setSyncStatus, type SyncFailureReason } from '../../utils/sync-helpers'
 import { netflixAcceptLanguage, netflixCookieHeader, parseNetflixViewingActivity } from '../../utils/netflix'
 import { getLocaleConfig } from '../../utils/locale'
+import { getSecretConfig } from '../../utils/secrets'
 import { cleanTitle, unnamedEpisodeTitle } from '../../utils/ingest-normalize'
 import { moviesNoteParts, runIngest, type IngestRow } from '../../utils/ingest'
 import { userError, userMessage, UserMessageError, type MessagePart } from '../../utils/user-message'
@@ -23,8 +24,7 @@ export default defineEventHandler(async (event) => {
 
   let cookieString = body.cookies?.trim()
   if (!cookieString) {
-    const row = db.prepare("SELECT value FROM config WHERE key = 'netflix_cookies'").get() as { value: string } | undefined
-    cookieString = row?.value || ''
+    cookieString = getSecretConfig('netflix_cookies', db).value
   }
 
   if (!cookieString) {

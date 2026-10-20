@@ -1,10 +1,11 @@
 import { getDb } from '../utils/db'
-import { getLlmConfig, getStoredLlmConfig, sameBaseUrl } from '../utils/llm'
+import { getLlmConfig, getStoredLlmState, sameBaseUrl, saveStoredLlmConfig } from '../utils/llm'
 import { setHiddenHomeSections } from '../utils/home-layout'
 import { LOCALE_CONFIG_KEYS, normalizeAppLocale, normalizeTmdbLanguage, normalizeTmdbRegion } from '../utils/locale'
 import { userError, userMessage } from '../utils/user-message'
 import { clearTmdbCaches, isValidTmdbKey, TMDB_KEY_CONFIG_KEY } from '../utils/tmdb'
 import { ONBOARDING_DISMISSED_KEY } from '../utils/onboarding'
+import { clearSecretConfig, setSecretConfig } from '../utils/secrets'
 import { isValidNetflixSyncInterval, NETFLIX_INTERVAL_CONFIG_KEY, netflixSyncIntervalChoices } from '../utils/sync-helpers'
 
 export default defineEventHandler(async (event) => {
@@ -73,8 +74,8 @@ export default defineEventHandler(async (event) => {
 
   if (tmdbKeyUpdate !== null) {
     // Cancellata: la riga sparisce e torna valida TMDB_API_KEY dell'env (se c'è)
-    if (tmdbKeyUpdate) setConfig.run(TMDB_KEY_CONFIG_KEY, tmdbKeyUpdate)
-    else db.prepare('DELETE FROM config WHERE key = ?').run(TMDB_KEY_CONFIG_KEY)
+    if (tmdbKeyUpdate) setSecretConfig(TMDB_KEY_CONFIG_KEY, tmdbKeyUpdate, db)
+    else clearSecretConfig(TMDB_KEY_CONFIG_KEY, db)
     // Le classifiche in cache possono venire dalla chiave precedente (o dalla sua assenza)
     clearTmdbCaches()
   }
@@ -83,16 +84,23 @@ export default defineEventHandler(async (event) => {
   if (body.llm) {
     // Base: config effettiva, ma la chiave salvata in DB è solo quella del DB (mai quella da env)
     const effective = getLlmConfig()
+    const stored = getStoredLlmState()
     const currentLlm = {
       base_url: effective.base_url,
-      api_key: getStoredLlmConfig()?.api_key?.trim() || '',
+      api_key: stored.config?.api_key?.trim() || '',
       model: effective.model,
     }
+    // Chiave salvata ma non decifrabile: si conserva così com'è finché non la si sostituisce
+    // o cancella, così la UI continua a segnalare che va reinserita
+    let keepRawApiKey = stored.apiKeyUnreadable
 
     if (body.llm.base_url !== undefined) {
       const newBase = String(body.llm.base_url).trim().replace(/\/+$/, '')
       // Cambio provider: la vecchia chiave non va mai inviata al nuovo base_url
-      if (!sameBaseUrl(newBase, currentLlm.base_url)) currentLlm.api_key = ''
+      if (!sameBaseUrl(newBase, currentLlm.base_url)) {
+        currentLlm.api_key = ''
+        keepRawApiKey = false
+      }
       currentLlm.base_url = newBase
     }
     if (body.llm.model !== undefined) currentLlm.model = String(body.llm.model).trim()
@@ -101,12 +109,14 @@ export default defineEventHandler(async (event) => {
       const keyTrimmed = body.llm.api_key.trim()
       if (keyTrimmed !== '' && !keyTrimmed.includes('••••••••')) {
         currentLlm.api_key = keyTrimmed
+        keepRawApiKey = false
       } else if (body.llm.clear_api_key) {
         currentLlm.api_key = ''
+        keepRawApiKey = false
       }
     }
 
-    setConfig.run('llm_config', JSON.stringify(currentLlm))
+    saveStoredLlmConfig(currentLlm, keepRawApiKey ? stored.rawApiKey : undefined)
   }
 
   // 2. Stremio Auth Key
@@ -114,9 +124,9 @@ export default defineEventHandler(async (event) => {
     if (body.stremio.auth_key !== undefined) {
       const keyTrimmed = body.stremio.auth_key.trim()
       if (keyTrimmed !== '' && !keyTrimmed.includes('••••••••')) {
-        setConfig.run('stremio_auth_key', keyTrimmed)
+        setSecretConfig('stremio_auth_key', keyTrimmed, db)
       } else if (body.stremio.clear_auth_key) {
-        setConfig.run('stremio_auth_key', '')
+        setSecretConfig('stremio_auth_key', '', db)
       }
     }
   }
@@ -126,9 +136,9 @@ export default defineEventHandler(async (event) => {
     if (body.netflix.cookies !== undefined) {
       const val = body.netflix.cookies.trim()
       if (val !== '' && !val.includes('••••••••')) {
-        setConfig.run('netflix_cookies', val)
+        setSecretConfig('netflix_cookies', val, db)
       } else if (body.netflix.clear_cookies) {
-        setConfig.run('netflix_cookies', '')
+        setSecretConfig('netflix_cookies', '', db)
       }
     }
   }

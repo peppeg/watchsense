@@ -11,6 +11,7 @@ import { normalizeGenresMigration } from './009_normalize_genres'
 import { localeDefaultsMigration } from './010_locale_defaults'
 import { canonicalGenresMigration } from './011_canonical_genres'
 import { airedEpisodesMigration } from './012_aired_episodes'
+import { encryptSecretsMigration } from './013_encrypt_secrets'
 
 // Elenco ordinato delle migrazioni: version = posizione (1..n, senza buchi).
 // Per aggiungerne una: crea `NNN_nome.ts` che esporta una `Migration` con
@@ -28,4 +29,5 @@ export const migrations: Migration[] = [
   localeDefaultsMigration,
   canonicalGenresMigration,
   airedEpisodesMigration,
+  encryptSecretsMigration,
 ]

@@ -15,6 +15,7 @@ vi.stubGlobal('createError', createError)
 vi.stubGlobal('fetch', vi.fn())
 
 const { getDb } = await import('../server/utils/db')
+const { decryptSecret } = await import('../server/utils/secret-key')
 const tmdb = await import('../server/utils/tmdb')
 const getConfig = (await import('../server/api/config.get')).default as any
 const postConfig = (await import('../server/api/config.post')).default as any
@@ -23,7 +24,15 @@ const testKey = (await import('../server/api/tmdb/test.post')).default as any
 const DB_KEY = 'a'.repeat(28) + '1234'
 const ENV_KEY = 'b'.repeat(28) + '5678'
 
-const storedKey = () => (getDb().prepare("SELECT value FROM config WHERE key = 'tmdb_api_key'").get() as { value: string } | undefined)?.value
+const storedRaw = () => (getDb().prepare("SELECT value FROM config WHERE key = 'tmdb_api_key'").get() as { value: string } | undefined)?.value
+/** Valore salvato, decifrato; il valore grezzo deve essere cifrato (o vuoto). */
+const storedKey = () => {
+  const raw = storedRaw()
+  if (raw === undefined || raw === '') return raw
+  expect(raw.startsWith('enc:v1:')).toBe(true)
+  const res = decryptSecret(raw)
+  return res.ok ? res.value : '<unreadable>'
+}
 const fetchMock = () => vi.mocked(fetch)
 
 /** Errore h3 lanciato da `fn` (fallisce se non lancia). */
@@ -86,19 +95,19 @@ describe('GET /api/config: stato della chiave TMDB', () => {
   it('mascherata, mai in chiaro', async () => {
     getDb().prepare("INSERT INTO config (key, value) VALUES ('tmdb_api_key', ?)").run(DB_KEY)
     const res = await getConfig({})
-    expect(res.tmdb).toEqual({ has_api_key: true, masked_api_key: 'aaaa••••••••1234', source: 'db' })
+    expect(res.tmdb).toEqual({ has_api_key: true, masked_api_key: 'aaaa••••••••1234', source: 'db', secret_unreadable: false })
     expect(JSON.stringify(res)).not.toContain(DB_KEY)
   })
 
   it('da env', async () => {
     process.env.TMDB_API_KEY = ENV_KEY
     const res = await getConfig({})
-    expect(res.tmdb).toEqual({ has_api_key: true, masked_api_key: 'bbbb••••••••5678', source: 'env' })
+    expect(res.tmdb).toEqual({ has_api_key: true, masked_api_key: 'bbbb••••••••5678', source: 'env', secret_unreadable: false })
     expect(JSON.stringify(res)).not.toContain(ENV_KEY)
   })
 
   it('mancante', async () => {
-    expect((await getConfig({})).tmdb).toEqual({ has_api_key: false, masked_api_key: '', source: 'none' })
+    expect((await getConfig({})).tmdb).toEqual({ has_api_key: false, masked_api_key: '', source: 'none', secret_unreadable: false })
   })
 })
 

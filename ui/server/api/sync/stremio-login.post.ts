@@ -1,4 +1,4 @@
-import { getDb } from '../../utils/db'
+import { setSecretConfig } from '../../utils/secrets'
 import { StremioLoginError, stremioLogin } from '../../utils/stremio'
 import { userError, userMessage } from '../../utils/user-message'
 
@@ -21,6 +21,6 @@ export default defineEventHandler(async (event) => {
     throw userError(502, userMessage('sync.stremio.loginUnexpected'))
   }
 
-  getDb().prepare('INSERT OR REPLACE INTO config (key, value) VALUES (?, ?)').run('stremio_auth_key', authKey)
+  setSecretConfig('stremio_auth_key', authKey)
   return { ok: true, ...userMessage('sync.stremio.loginDone') }
 })

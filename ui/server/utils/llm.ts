@@ -1,4 +1,6 @@
 import { getDb } from './db'
+import { LLM_CONFIG_KEY, readSecretValue } from './secrets'
+import { encryptSecret } from './secret-key'
 
 // Configurazione LLM condivisa: qualsiasi provider OpenAI-compatibile
 
@@ -55,16 +57,40 @@ export function getEnvLlmConfig(): LlmConfig {
   return { base_url: KILO_DEFAULT_BASE_URL, api_key: '', model }
 }
 
-/** Config salvata in DB (`config.llm_config`), se presente e valida. */
-export function getStoredLlmConfig(): Partial<LlmConfig> | null {
+export interface StoredLlmState {
+  /** Config salvata, con api_key già decifrata ('' se non decifrabile). */
+  config: Partial<LlmConfig> | null
+  /** api_key salvata ma non decifrabile (chiave dei segreti cambiata o mancante). */
+  apiKeyUnreadable: boolean
+  /** api_key così com'è nel DB (cifrata): per conservarla se l'utente cambia solo il modello. */
+  rawApiKey: string
+}
+
+/** Config salvata in DB (`config.llm_config`, api_key cifrata), se presente e valida. */
+export function getStoredLlmState(): StoredLlmState {
+  let parsed: any
   try {
-    const row = getDb().prepare("SELECT value FROM config WHERE key = 'llm_config'").get() as { value: string } | undefined
-    if (!row?.value) return null
-    const parsed = JSON.parse(row.value)
-    return parsed && typeof parsed === 'object' ? parsed : null
+    const row = getDb().prepare('SELECT value FROM config WHERE key = ?').get(LLM_CONFIG_KEY) as { value: string } | undefined
+    if (!row?.value) return { config: null, apiKeyUnreadable: false, rawApiKey: '' }
+    parsed = JSON.parse(row.value)
   } catch {
-    return null
+    return { config: null, apiKeyUnreadable: false, rawApiKey: '' }
   }
+  if (!parsed || typeof parsed !== 'object') return { config: null, apiKeyUnreadable: false, rawApiKey: '' }
+  const rawApiKey = typeof parsed.api_key === 'string' ? parsed.api_key : ''
+  const key = readSecretValue('llm_config.api_key', rawApiKey)
+  return { config: { ...parsed, api_key: key.value }, apiKeyUnreadable: key.unreadable, rawApiKey }
+}
+
+/** Config salvata in DB (`config.llm_config`), se presente e valida, con la chiave in chiaro. */
+export function getStoredLlmConfig(): Partial<LlmConfig> | null {
+  return getStoredLlmState().config
+}
+
+/** Salva la config LLM: base_url e model in chiaro, api_key cifrata (`rawApiKey`: già cifrata, si conserva). */
+export function saveStoredLlmConfig(config: LlmConfig, rawApiKey?: string): void {
+  const value = { ...config, api_key: rawApiKey ?? encryptSecret(config.api_key) }
+  getDb().prepare('INSERT OR REPLACE INTO config (key, value) VALUES (?, ?)').run(LLM_CONFIG_KEY, JSON.stringify(value))
 }
 
 /** Config effettiva: priorità DB → env. */
