@@ -113,6 +113,7 @@
           </div>
         </SettingsStep>
       </ol>
+      <SettingsSecretUnreadable :show="config.sync.netflix.secret_unreadable" />
       <SettingsFeedback scope="netflixLink" />
       <p class="border-t border-[#1f1f2e] pt-3.5 text-sm text-zinc-400">
         <I18nT keypath="settings.netflix.noCookies">
@@ -157,6 +158,7 @@ const nextRun = computed(() => {
 const cookieBadge = computed(() => {
   if (netflixCookiesExpired.value) return { label: t('settings.netflix.needsUpdate'), tone: 'error' as const }
   if (config.value.sync.netflix.has_cookies) return { label: t('settings.netflix.cookiesSaved'), tone: 'ok' as const }
+  if (config.value.sync.netflix.secret_unreadable) return { label: t('settings.secretUnreadableBadge'), tone: 'warn' as const }
   return { label: t('settings.notConfigured'), tone: 'neutral' as const }
 })
 

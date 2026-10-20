@@ -24,22 +24,26 @@ function emptyConfig() {
       has_api_key: false,
       masked_api_key: '',
       configured: false,
+      secret_unreadable: false,
     },
     tmdb: {
       has_api_key: false,
       masked_api_key: '',
       source: 'none' as 'db' | 'env' | 'none',
+      secret_unreadable: false,
     },
     sync: {
       stremio: {
         has_auth_key: false,
         masked_auth_key: '',
+        secret_unreadable: false,
         last_status: null as SyncStatus | null,
         next_run_at: null as string | null,
       },
       netflix: {
         has_cookies: false,
         masked_cookies: '',
+        secret_unreadable: false,
         last_status: null as SyncStatus | null,
         interval_hours: 12,
         interval_source: 'default' as 'db' | 'env' | 'default',
@@ -47,7 +51,7 @@ function emptyConfig() {
         env_interval_hours: null as number | null,
         next_run_at: null as string | null,
       },
-      bookmarklet: { ingest_token: '', last_status: null as SyncStatus | null },
+      bookmarklet: { ingest_token: '', secret_unreadable: false, last_status: null as SyncStatus | null },
       platforms: {} as Record<string, { episodes: number; last_watched: string | null }>,
       last_sync_timestamp: null as string | null,
       last_sync_result: null as any,
@@ -188,7 +192,7 @@ function createSettingsStore() {
     regeneratingToken.value = true
     try {
       const res: any = await $fetch('/api/sync/ingest-token/regenerate', { method: 'POST' })
-      config.value.sync.bookmarklet = { ...config.value.sync.bookmarklet, ingest_token: res.token }
+      config.value.sync.bookmarklet = { ...config.value.sync.bookmarklet, ingest_token: res.token, secret_unreadable: false }
       setFlash(scope, 'success', t('settings.bookmarklet.regenerated'))
     } catch (err: any) {
       setFlash(scope, 'error', t('settings.bookmarklet.regenerateFailed', { detail: serverErrorText(err) }))

@@ -23,6 +23,7 @@
         @keydown.enter="save"
       />
       <p id="tmdb-api-key-help" class="text-sm text-zinc-400">{{ t('settings.tmdb.apiKeyHelp') }}</p>
+      <SettingsSecretUnreadable :show="status.secret_unreadable" />
     </div>
 
     <div class="flex flex-wrap items-center gap-3">
@@ -63,6 +64,8 @@ export interface TmdbKeyStatus {
   has_api_key: boolean
   masked_api_key: string
   source: 'db' | 'env' | 'none'
+  /** Chiave salvata ma non decifrabile: va reinserita */
+  secret_unreadable?: boolean
 }
 
 const props = defineProps<{ status: TmdbKeyStatus }>()

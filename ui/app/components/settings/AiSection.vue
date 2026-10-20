@@ -92,6 +92,7 @@
           </p>
         </div>
       </SettingsDisclosure>
+      <SettingsSecretUnreadable :show="config.llm.secret_unreadable" />
       <SettingsFeedback scope="llm" />
     </SettingsCard>
 
@@ -196,6 +197,7 @@ const modelsError = ref('')
 const isLocalProvider = computed(() => selectedProvider.value === 'ollama' || selectedProvider.value === 'lmstudio')
 const llmBadge = computed(() => {
   if (config.value.llm.has_api_key) return { label: t('settings.llm.statusKey'), tone: 'ok' as const }
+  if (config.value.llm.secret_unreadable) return { label: t('settings.secretUnreadableBadge'), tone: 'warn' as const }
   // Provider locale scelto qui, o salvato con un indirizzo di rete locale (llm.configured)
   if (isLocalProvider.value || config.value.llm.configured) return { label: t('settings.llm.statusLocal'), tone: 'ok' as const }
   return { label: t('settings.notConfigured'), tone: 'warn' as const }

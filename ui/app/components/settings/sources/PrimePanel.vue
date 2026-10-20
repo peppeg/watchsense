@@ -15,6 +15,7 @@
               <UIcon name="i-lucide-bookmark" class="h-4 w-4" aria-hidden="true" />
               <span>{{ t('settings.bookmarklet.drag') }}</span>
             </a>
+            <span v-else-if="config.sync.bookmarklet?.secret_unreadable" class="text-sm text-amber-300" role="alert">{{ t('settings.bookmarklet.tokenUnreadable') }}</span>
             <span v-else class="text-sm text-zinc-400">{{ t('settings.bookmarklet.loading') }}</span>
             <span class="text-sm text-zinc-400">{{ t('settings.bookmarklet.or') }}</span>
             <button type="button" class="ws-btn" :disabled="!bookmarkletReady" @click="copyBookmarklet">

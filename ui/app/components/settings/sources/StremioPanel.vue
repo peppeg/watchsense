@@ -40,8 +40,8 @@
     <!-- Collegamento: login con email e password (si salva solo la authKey) o authKey a mano -->
     <SettingsCard
       :title="t('settings.stremio.linkTitle')"
-      :badge="config.sync.stremio.has_auth_key ? t('settings.stremio.connected') : t('settings.notConfigured')"
-      :badge-tone="config.sync.stremio.has_auth_key ? 'ok' : 'neutral'"
+      :badge="config.sync.stremio.has_auth_key ? t('settings.stremio.connected') : config.sync.stremio.secret_unreadable ? t('settings.secretUnreadableBadge') : t('settings.notConfigured')"
+      :badge-tone="config.sync.stremio.has_auth_key ? 'ok' : config.sync.stremio.secret_unreadable ? 'warn' : 'neutral'"
     >
       <p class="text-[15px] text-zinc-300">{{ t('settings.stremio.loginIntro') }}</p>
       <form class="flex flex-col gap-4" @submit.prevent="login">
@@ -62,6 +62,7 @@
           </button>
         </div>
       </form>
+      <SettingsSecretUnreadable :show="config.sync.stremio.secret_unreadable" />
       <SettingsFeedback scope="stremioLink" />
 
       <SettingsDisclosure :label="t('settings.stremio.haveAuthKey')" :open-label="t('settings.stremio.hideAuthKey')">

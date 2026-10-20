@@ -376,6 +376,9 @@ export const en = {
     // Parole ripetute nelle sezioni
     save: 'Save',
     notConfigured: 'Not configured',
+    // Segreto salvato ma non decifrabile (chiave dei segreti cambiata o mancante)
+    secretUnreadable: 'Saved secret can\'t be decrypted (encryption key changed or missing): enter it again.',
+    secretUnreadableBadge: 'Enter again',
     syncing: 'Syncing...',
     lastSyncOk: 'succeeded',
     lastSyncFailed: 'failed',
@@ -521,6 +524,7 @@ export const en = {
       // Testo del pulsante trascinabile: diventa il nome del segnalibro
       drag: 'Sync WatchSense',
       loading: 'Loading the bookmarklet…',
+      tokenUnreadable: 'The saved bookmarklet token can\'t be decrypted (encryption key changed or missing): regenerate it below and install the bookmarklet again.',
       copied: 'Copied!',
       copy: 'Copy the code',
       step1: 'Drag the button above to your browser\'s {bar} (or click "{copy}" and paste it as the URL of a new bookmark).',
@@ -701,7 +705,7 @@ export const en = {
       tokenTitle: 'Bookmarklet token',
       tokenText: 'Used by the Netflix/Prime Video bookmarklet to send the history. If you regenerate it, reinstall the bookmarklet.',
       secretsTitle: 'Stored secrets',
-      secretsText: 'Netflix cookies, the Stremio session key and the API keys saved here are stored in plain text in the local SQLite database. Protect the database file and its backups. The Stremio password is never stored.',
+      secretsText: 'Netflix cookies, the Stremio session key, the API keys saved here and the bookmarklet token are encrypted in the local SQLite database with a key kept outside it (the secret.key file next to the database, or WATCHSENSE_SECRET_KEY). Back up that key separately: without it the saved secrets have to be entered again. The Stremio password is never stored.',
     },
     system: {
       title: 'Technical details',
