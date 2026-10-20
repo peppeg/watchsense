@@ -119,7 +119,7 @@ Vedi **[docs/CONFIGURATION.it.md](docs/CONFIGURATION.it.md)**:
 - **L'autenticazione è disattivata di default.** Senza `WATCHSENSE_TOKEN` chiunque raggiunga la porta può leggere la tua cronologia, cambiare le impostazioni e avviare chiamate LLM addebitate sulla tua chiave API.
 - **In una rete privata** (LAN fidata, Tailscale, WireGuard) di solito va bene. Altrimenti imposta `WATCHSENSE_TOKEN` (schermata di accesso + `Authorization: Bearer`) **e** servilo in HTTPS tramite un reverse proxy; `HOST=127.0.0.1` lo limita al computer locale. Vedi [Accesso e sicurezza](docs/CONFIGURATION.it.md#accesso-e-sicurezza).
 - Le richieste API che modificano dati vengono rifiutate se arrivano da un'altra origine o hanno un body non JSON (eccezioni: l'upload CSV e l'endpoint del bookmarklet, che richiede il token dell'istanza).
-- I cookie di sessione Netflix, l'authKey Stremio e le chiavi API LLM salvate dalla UI sono memorizzati **in chiaro** nel database SQLite. Proteggi `data/watchsense.db` (con i file `-wal`/`-shm`) e ogni suo backup.
+- I cookie di sessione Netflix, l'authKey Stremio, le chiavi API salvate dalla UI e il token del bookmarklet sono **cifrati** nel database SQLite (AES-256-GCM) con una chiave tenuta fuori dal database: `data/secret.key`, creato al primo avvio, oppure `WATCHSENSE_SECRET_KEY`. **Fai un backup separato della chiave**: il solo database non rivela i segreti e senza la chiave vanno reinseriti. Chi ha accesso completo al server può comunque leggere entrambi. Vedi [Segreti salvati](docs/CONFIGURATION.it.md#segreti-salvati).
 - Per segnalare una vulnerabilità in privato vedi [SECURITY.md](SECURITY.md) (in inglese).
 
 ## Privacy

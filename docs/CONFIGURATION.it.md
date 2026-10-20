@@ -235,6 +235,20 @@ Configurazioni consigliate:
 - **Rete privata** (LAN fidata, Tailscale, WireGuard): token facoltativo.
 - **Tutto il resto** (rete condivisa, porta inoltrata, server pubblico): imposta `WATCHSENSE_TOKEN` **e** usa HTTPS. Senza entrambi non esporre la porta su Internet.
 
+### Segreti salvati
+
+I cookie Netflix, l'authKey Stremio, le chiavi API TMDB e LLM salvate dalle Impostazioni e il token del bookmarklet sono **cifrati** nel database (AES-256-GCM, IV casuale per ogni valore, salvati come `enc:v1:...`). La password di Stremio non viene mai salvata. Il resto del database (cronologia, impostazioni, stato delle sync) non è cifrato.
+
+**La chiave di cifratura** (32 byte) viene, in quest'ordine, da:
+1. `WATCHSENSE_SECRET_KEY`: 64 caratteri esadecimali oppure 32 byte in base64, ad esempio `openssl rand -base64 32`. Qualsiasi altro valore (come una passphrase) viene rifiutato all'avvio.
+2. Altrimenti un **file della chiave**, `WATCHSENSE_SECRET_KEY_FILE` o per default `secret.key` nella cartella del database (`data/secret.key`; in Docker `/app/data/secret.key`, quindi nel volume `./data`). Se non esiste viene creato al primo avvio con permessi `0600`. Se esiste ma non è leggibile o non è valido, WatchSense scrive un errore nel log e non apre il database invece di creare una chiave nuova (renderebbe illeggibili i segreti salvati): correggi o ripristina il file.
+
+All'avvio WatchSense porta anche il database, i suoi file `-wal`/`-shm` e il file della chiave a `0600` (se appartengono all'utente che lo esegue) e toglie l'accesso agli altri utenti dalla cartella `data/` di default.
+
+**Chiave persa o cambiata.** I segreti salvati con un'altra chiave non si possono decifrare: WatchSense li considera non configurati, scrive un avviso nel log con il solo nome del segreto e le Impostazioni mostrano *Il segreto salvato non si può decifrare (chiave di cifratura cambiata o mancante): inseriscilo di nuovo* nella scheda interessata. Salvando di nuovo il valore lo si cifra con la chiave attuale. Per il bookmarklet, rigenera il token e installa di nuovo il bookmarklet. Ripristinando la chiave vecchia i valori vecchi tornano leggibili.
+
+**Cosa protegge.** Una copia del solo database (un backup, una cartella sincronizzata, un'immagine del disco senza il file della chiave) non rivela i segreti. Chi ha accesso completo al server o al container può comunque leggere la chiave e i segreti, come con qualsiasi app self-hosted.
+
 ## Variabili d'ambiente
 
 | Variabile | Default | Descrizione |
@@ -256,6 +270,8 @@ Configurazioni consigliate:
 | `PORT` | `3000` | Porta HTTP del server compilato (letta da Nitro). In Docker Compose imposta la porta **sull'host**; il container ascolta sempre sulla 3000. |
 | `HOST` | tutte le interfacce | Indirizzo di ascolto del server compilato (letto da Nitro, anche come `NITRO_HOST`). `127.0.0.1` = solo questo computer. Vedi [Accesso e sicurezza](#accesso-e-sicurezza). |
 | `WATCHSENSE_TOKEN` | *(vuoto)* | Token di accesso facoltativo. Vuoto = nessun login. Vedi [Accesso e sicurezza](#accesso-e-sicurezza). |
+| `WATCHSENSE_SECRET_KEY` | *(vuoto)* | Chiave che cifra i segreti salvati: 64 caratteri esadecimali o 32 byte in base64 (`openssl rand -base64 32`). Vuoto = si usa il file della chiave. Vedi [Segreti salvati](#segreti-salvati). |
+| `WATCHSENSE_SECRET_KEY_FILE` | `<cartella del database>/secret.key` | File della chiave, creato con permessi `0600` se manca. Ignorato se è impostata `WATCHSENSE_SECRET_KEY`. |
 
 `<progetto>` è la cartella che contiene `db/schema.sql`, individuata automaticamente. L'immagine Docker imposta `DATABASE_PATH=/app/data/watchsense.db`, `EXPORTS_PATH=/app/exports` e `SCHEMA_PATH=/app/db/schema.sql`.
 
@@ -307,7 +323,10 @@ sqlite3 data/watchsense.db ".backup 'watchsense-$(date +%F).db'"
 
 **Ripristino**: ferma l'app, rimuovi i file `watchsense.db-wal` e `watchsense.db-shm` esistenti, copia il backup in `data/watchsense.db`, avvia l'app.
 
-I backup contengono cookie e chiavi API in chiaro: conservali di conseguenza.
+I segreti salvati nel database sono cifrati con la chiave in `data/secret.key` (o `WATCHSENSE_SECRET_KEY`), che **non** fa parte del backup del database (`watchsense.db*`):
+- **Fai un backup separato della chiave** e conservalo con cura, meglio non accanto ai backup del database: il solo database non rivela i segreti, database e chiave insieme sì. Senza la chiave, dopo un ripristino i cookie, le chiavi e il token del bookmarklet salvati vanno reinseriti (tutto il resto si ripristina normalmente).
+- Tieni privati i backup, ad esempio `chmod 600 watchsense-*.db secret.key`: contengono comunque la cronologia e le impostazioni.
+- Per ripristinare su una macchina nuova, copia `secret.key` in `data/` (o imposta la stessa `WATCHSENSE_SECRET_KEY`) prima di avviare l'app.
 
 ### Aggiornamenti dello schema
 

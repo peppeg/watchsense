@@ -235,6 +235,20 @@ Recommended setups:
 - **Private network** (LAN you trust, Tailscale, WireGuard): token optional.
 - **Anything else** (shared network, port forwarded, public server): set `WATCHSENSE_TOKEN` **and** use HTTPS. Do not expose the port to the Internet without both.
 
+### Stored secrets
+
+Netflix cookies, the Stremio authKey, the TMDB and LLM API keys saved from Settings and the bookmarklet token are **encrypted** in the database (AES-256-GCM, a random IV per value, stored as `enc:v1:...`). The Stremio password is never stored. Everything else in the database (history, settings, sync status) is not encrypted.
+
+**The encryption key** (32 bytes) comes from, in this order:
+1. `WATCHSENSE_SECRET_KEY`: 64 hex characters or 32 bytes in base64, e.g. `openssl rand -base64 32`. Any other value (such as a passphrase) is rejected at startup.
+2. Otherwise a **key file**, `WATCHSENSE_SECRET_KEY_FILE` or by default `secret.key` in the database folder (`data/secret.key`; in Docker `/app/data/secret.key`, so in the `./data` volume). If it does not exist it is created at the first start with mode `0600`. If it exists but cannot be read or is not valid, WatchSense logs an error and refuses to open the database instead of creating a new key (that would make the saved secrets unreadable): fix or restore the file.
+
+At startup WatchSense also sets the database, its `-wal`/`-shm` files and the key file to `0600` (when they belong to the user running it) and removes access for other users from the default `data/` folder.
+
+**Key lost or changed.** Secrets saved with another key cannot be decrypted: WatchSense treats them as not configured, logs a warning with the secret's name only, and Settings shows *Saved secret can't be decrypted (encryption key changed or missing): enter it again* on the card concerned. Saving the value again stores it with the current key. For the bookmarklet, regenerate the token and install the bookmarklet again. Restoring the old key makes the old values readable again.
+
+**What it protects.** A copy of the database alone (a backup, a synced folder, a stolen disk image without the key file) does not reveal the secrets. Anyone with full access to the server or the container can still read the key and the secrets, as with any self-hosted app.
+
 ## Environment variables
 
 | Variable | Default | Description |
@@ -256,6 +270,8 @@ Recommended setups:
 | `PORT` | `3000` | HTTP port of the built server (read by Nitro). In Docker Compose it sets the **host** port; the container always listens on 3000. |
 | `HOST` | all interfaces | Listening address of the built server (read by Nitro, also as `NITRO_HOST`). `127.0.0.1` = this machine only. See [Access and security](#access-and-security). |
 | `WATCHSENSE_TOKEN` | *(empty)* | Optional access token. Empty = no login. See [Access and security](#access-and-security). |
+| `WATCHSENSE_SECRET_KEY` | *(empty)* | Key that encrypts the saved secrets: 64 hex characters or 32 bytes in base64 (`openssl rand -base64 32`). Empty = use the key file. See [Stored secrets](#stored-secrets). |
+| `WATCHSENSE_SECRET_KEY_FILE` | `<database folder>/secret.key` | Key file, created with mode `0600` if missing. Ignored when `WATCHSENSE_SECRET_KEY` is set. |
 
 `<project>` is the folder that contains `db/schema.sql`, found automatically. The Docker image sets `DATABASE_PATH=/app/data/watchsense.db`, `EXPORTS_PATH=/app/exports` and `SCHEMA_PATH=/app/db/schema.sql`.
 
@@ -307,7 +323,10 @@ sqlite3 data/watchsense.db ".backup 'watchsense-$(date +%F).db'"
 
 **Restore**: stop the app, remove the existing `watchsense.db-wal` and `watchsense.db-shm`, copy the backup to `data/watchsense.db`, start the app.
 
-Backups contain cookies and API keys in plain text: store them accordingly.
+The saved secrets in the database are encrypted with the key in `data/secret.key` (or `WATCHSENSE_SECRET_KEY`), which is **not** part of the database backup (`watchsense.db*`):
+- **Back up the key separately** and keep it safe, ideally not next to the database backups: the database alone does not reveal the secrets, the database together with the key does. Without the key, the saved cookies, keys and bookmarklet token have to be entered again after a restore (everything else is restored normally).
+- Keep backups private, e.g. `chmod 600 watchsense-*.db secret.key`: they still contain your viewing history and settings.
+- When restoring onto a new machine, copy `secret.key` back into `data/` (or set the same `WATCHSENSE_SECRET_KEY`) before starting the app.
 
 ### Schema upgrades
 

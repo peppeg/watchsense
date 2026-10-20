@@ -119,7 +119,7 @@ See **[docs/CONFIGURATION.md](docs/CONFIGURATION.md)**:
 - **Authentication is off by default.** Without `WATCHSENSE_TOKEN`, anyone who can reach the port can read your history, change settings and trigger LLM calls billed to your API key.
 - **On a private network** (trusted LAN, Tailscale, WireGuard) that is usually fine. Otherwise set `WATCHSENSE_TOKEN` (login screen + `Authorization: Bearer`) **and** serve it over HTTPS through a reverse proxy; `HOST=127.0.0.1` limits it to the local machine. See [Access and security](docs/CONFIGURATION.md#access-and-security).
 - Mutating API requests are rejected when they come from another origin or have a non-JSON body (exceptions: the CSV upload, and the bookmarklet endpoint, which requires the per-instance bookmarklet token).
-- Netflix session cookies, the Stremio authKey and LLM API keys saved from the UI are stored **in plain text** in the SQLite database. Protect `data/watchsense.db` (with its `-wal`/`-shm` files) and every backup of it.
+- Netflix session cookies, the Stremio authKey, the API keys saved from the UI and the bookmarklet token are **encrypted** in the SQLite database (AES-256-GCM) with a key kept outside it: `data/secret.key`, created at the first start, or `WATCHSENSE_SECRET_KEY`. **Back up the key separately**: the database alone does not reveal the secrets, and without the key they have to be entered again. Anyone with full access to the server can still read both. See [Stored secrets](docs/CONFIGURATION.md#stored-secrets).
 - To report a vulnerability privately, see [SECURITY.md](SECURITY.md).
 
 ## Privacy

@@ -35,3 +35,6 @@ services:
       - SYNC_INTERVAL_HOURS=${SYNC_INTERVAL_HOURS:-12}
       # Token di accesso facoltativo (vuoto = nessun login): docs/CONFIGURATION.md#access-and-security
       - WATCHSENSE_TOKEN=${WATCHSENSE_TOKEN:-}
+      # Chiave dei segreti salvati (vuota = file /app/data/secret.key, creato al primo avvio):
+      # docs/CONFIGURATION.md#stored-secrets
+      - WATCHSENSE_SECRET_KEY=${WATCHSENSE_SECRET_KEY:-}

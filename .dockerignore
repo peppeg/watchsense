@@ -9,7 +9,8 @@
 !.env.example
 
 # Local Data & Exports
-data/*.db*
+data/*
+*.key
 data/*.sqlite*
 exports/*
 !exports/.gitkeep

@@ -25,7 +25,7 @@ WatchSense is a personal project maintained in spare time. There is no SLA: repo
 
 WatchSense is a self-hosted, single-user application. Some behaviours are documented design choices, not vulnerabilities (see [Security](README.md#-security) in the README):
 
-- Netflix session cookies, the Stremio authKey and LLM API keys saved from the UI are stored **in plain text** in the SQLite database. Protecting the database file and its backups is up to the operator.
+- Secrets saved from the UI (Netflix cookies, Stremio authKey, TMDB/LLM API keys, bookmarklet token) are encrypted in the SQLite database with a key stored outside it (`data/secret.key` or `WATCHSENSE_SECRET_KEY`); see [Stored secrets](docs/CONFIGURATION.md#stored-secrets). Someone who can read both the database and the key (for example with full access to the server or container) can read the secrets: protecting the server, the key file and backups is up to the operator. The rest of the database (viewing history, settings) is not encrypted.
 - Without `WATCHSENSE_TOKEN` there is no login: anyone who can reach the port has full access. Running it like this on `0.0.0.0` is meant for trusted private networks only; see [Access and security](docs/CONFIGURATION.md#access-and-security).
 - Recommendation requests send viewing history to the LLM provider you configure.
 
