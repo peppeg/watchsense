@@ -1,0 +1,62 @@
+# ── Segreti e credenziali (MAI committare) ──
+.secrets/
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.crt
+
+# ── Dati personali e cronologia visione ──
+exports/*
+!exports/.gitkeep
+*.csv
+*.tsv
+
+# ── Database SQLite e directory runtime ──
+data/*
+!data/.gitkeep
+*.db
+*.db-*
+*.db.bak*
+*.sqlite*
+*.sqlite3*
+ui/data/
+
+# ── Python ──
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+
+# ── Nuxt / Node (coperto anche da ui/.gitignore) ──
+ui/node_modules/
+node_modules/
+ui/.nuxt/
+ui/.output/
+ui/.data/
+ui/.nitro/
+ui/.cache/
+ui/dist/
+.output/
+
+# ── Editor e OS ──
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.log
+logs/
+.DS_Store
+Thumbs.db
+
+# ── Note e Specifiche Locali ──
+docs/*_brainstorming*
+docs/prossimi_sviluppi*
+audit/

@@ -1,0 +1,48 @@
+# Git
+.git
+.gitignore
+
+# Secrets & Environment
+.secrets
+.env
+.env.*
+!.env.example
+
+# Local Data & Exports
+data/*.db*
+data/*.sqlite*
+exports/*
+!exports/.gitkeep
+*.csv
+*.tsv
+
+# Python
+.venv
+venv
+__pycache__
+*.pyc
+*.pyo
+
+# Node & Build caches
+node_modules
+ui/node_modules
+ui/.nuxt
+ui/.output
+ui/.data
+ui/.nitro
+ui/.cache
+ui/dist
+.output
+
+# Documentation & Assets
+docs
+*.md
+!README.md
+
+# Logs & OS
+*.log
+logs
+.DS_Store
+Thumbs.db
+.vscode
+.idea

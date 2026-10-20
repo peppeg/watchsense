@@ -1,0 +1,37 @@
+services:
+  watchsense:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: watchsense:latest
+    container_name: watchsense
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    volumes:
+      - ./data:/app/data
+      - ./exports:/app/exports
+    # Linux + Ollama (o LM Studio) sull'host: decommenta per raggiungerlo come
+    # http://host.docker.internal:11434/v1 (Docker Desktop lo definisce già).
+    # extra_hosts:
+    #   - "host.docker.internal:host-gateway"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - HOST=0.0.0.0
+      - DATABASE_PATH=/app/data/watchsense.db
+      - EXPORTS_PATH=/app/exports
+      - TMDB_API_KEY=${TMDB_API_KEY:-}
+      - LLM_BASE_URL=${LLM_BASE_URL:-}
+      - LLM_API_KEY=${LLM_API_KEY:-}
+      - LLM_MODEL=${LLM_MODEL:-}
+      - KILO_API_KEY=${KILO_API_KEY:-}
+      - KILO_BASE_URL=${KILO_BASE_URL:-}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      # Intervallo sync automatica Netflix in ore (default 12)
+      - SYNC_INTERVAL_HOURS=${SYNC_INTERVAL_HOURS:-12}
+      # Token di accesso facoltativo (vuoto = nessun login): docs/CONFIGURATION.md#access-and-security
+      - WATCHSENSE_TOKEN=${WATCHSENSE_TOKEN:-}
