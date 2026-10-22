@@ -273,6 +273,7 @@ All'avvio WatchSense porta anche il database, i suoi file `-wal`/`-shm` e il fil
 | `WATCHSENSE_TOKEN` | *(vuoto)* | Token di accesso facoltativo. Vuoto = nessun login. Vedi [Accesso e sicurezza](#accesso-e-sicurezza). |
 | `WATCHSENSE_SECRET_KEY` | *(vuoto)* | Chiave che cifra i segreti salvati: 64 caratteri esadecimali o 32 byte in base64 (`openssl rand -base64 32`). Vuoto = si usa il file della chiave. Vedi [Segreti salvati](#segreti-salvati). |
 | `WATCHSENSE_SECRET_KEY_FILE` | `<cartella del database>/secret.key` | File della chiave, creato con permessi `0600` se manca. Ignorato se è impostata `WATCHSENSE_SECRET_KEY`. |
+| `PUID`, `PGID` | `1000` | Solo immagine Docker: uid e gid con cui gira l'app. All'avvio `/app/data` viene assegnata a loro se qualcosa al suo interno appartiene ad altri (ad esempio Unraid `99`/`100`). Ignorate se il container parte con `--user`. Vedi [Permessi delle cartelle](../README.it.md#-avvio-rapido-docker). |
 
 `<progetto>` è la cartella che contiene `db/schema.sql`, individuata automaticamente. L'immagine Docker imposta `DATABASE_PATH=/app/data/watchsense.db`, `EXPORTS_PATH=/app/exports` e `SCHEMA_PATH=/app/db/schema.sql`.
 

@@ -79,7 +79,7 @@ Open `http://localhost:3000` (the host port follows `PORT` in `.env`). The datab
 
 On first start the Home page shows a **Getting started** list that walks you through language and country, the TMDB key, a viewing source and the AI model, each linking straight to the right Settings section.
 
-**Folder permissions.** The container runs as user `node` (uid 1000). If `./data` is missing, Docker creates it owned by root and the app cannot write the database (the log shows `EACCES: permission denied`): create both folders first. If your uid is not 1000 (`id -u`), also run `sudo chown 1000:1000 data exports`; with rootless Podman, `podman unshare chown 1000:1000 data exports`.
+**Folder permissions.** The app runs as `PUID`:`PGID` (default `1000:1000`, the `node` user). At startup the container gives `./data` to that user if something in it belongs to someone else, e.g. a folder created by Docker or by a NAS as root: no `sudo chown` needed. To keep the files owned by your user set `PUID`/`PGID` in `.env` to `id -u`/`id -g` (Unraid: `99`/`100`). With `--user` or `user:` in the compose file the container never changes owners: the folder must already belong to that user. With rootless Podman the files end up owned by a subordinate uid of your user (edit them with `podman unshare`); to keep them yours add `userns_mode: keep-id` to the service (`podman run --userns=keep-id`), the app then runs with your uid. `./exports` is only read: `mkdir -p data exports` before the first start is still the simplest setup.
 
 **Update**:
 
@@ -107,7 +107,7 @@ volumes:
     name: watchsense-data
 ```
 
-The named volume avoids the permission problem: these UIs resolve a relative `./data` inside their own folders and create it as root, while Docker and Podman fill a new named volume from the image, already owned by `node`. The volume holds the database **and** `secret.key`: back it up with the container stopped, e.g. `docker run --rm -v watchsense-data:/data:ro -v "$PWD":/backup alpine tar czf /backup/watchsense-data.tgz -C /data .` (more in [Backup and restore](docs/CONFIGURATION.md#backup-and-restore)). The [Trakt import](docs/CONFIGURATION.md#trakt-data-export) reads files from `/app/exports` (there is no upload): only if you use it, add a host folder with an absolute path, e.g. `- /srv/watchsense/exports:/app/exports:ro`, and put the files in its `trakt/` subfolder.
+The named volume keeps the data out of the UI's own folders, where these UIs resolve a relative `./data`. A host folder with an absolute path works too, even if created as root (e.g. `- /DATA/AppData/watchsense:/app/data`): the container fixes its owner at startup, add `PUID`/`PGID` under `environment:` to choose it. The volume holds the database **and** `secret.key`: back it up with the container stopped, e.g. `docker run --rm -v watchsense-data:/data:ro -v "$PWD":/backup alpine tar czf /backup/watchsense-data.tgz -C /data .` (more in [Backup and restore](docs/CONFIGURATION.md#backup-and-restore)). The [Trakt import](docs/CONFIGURATION.md#trakt-data-export) reads files from `/app/exports` (there is no upload): only if you use it, add a host folder with an absolute path, e.g. `- /srv/watchsense/exports:/app/exports:ro`, and put the files in its `trakt/` subfolder.
 
 ### Build from source
 

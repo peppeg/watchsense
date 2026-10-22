@@ -20,6 +20,9 @@ services:
       - path: .env
         required: false
     environment:
+      # Proprietario dei file in /app/data (default 1000:1000; Unraid 99:100): docs/CONFIGURATION.md#environment-variables
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
       - NODE_ENV=production
       - PORT=3000
       - HOST=0.0.0.0
