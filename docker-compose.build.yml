@@ -1,0 +1,8 @@
+# Build the image from this checkout instead of pulling it from GHCR:
+#   docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
+services:
+  watchsense:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: watchsense:local

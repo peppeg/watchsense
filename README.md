@@ -62,22 +62,44 @@ DATABASE_PATH=/tmp/watchsense-demo/watchsense.db TMDB_API_KEY=... HOST=127.0.0.1
 
 ## 🚀 Quickstart (Docker)
 
-Requires Docker with Compose, or Podman with `podman compose`.
+Requires Docker with Compose, or Podman with `podman compose`. The image `ghcr.io/peppeg/watchsense` is published for **linux/amd64 and linux/arm64** (e.g. a Raspberry Pi 4/5 with a 64-bit OS): nothing to clone or build.
 
 ```bash
-git clone https://github.com/peppeg/watchsense.git
-cd watchsense
-
-cp .env.example .env
+mkdir watchsense && cd watchsense
+curl -fsSLO https://raw.githubusercontent.com/peppeg/watchsense/main/docker-compose.yml
+curl -fsSL https://raw.githubusercontent.com/peppeg/watchsense/main/.env.example -o .env
 # Edit .env: set TMDB_API_KEY and an LLM provider (LLM_BASE_URL / LLM_API_KEY / LLM_MODEL),
 # or set both later in Settings
 
+mkdir -p data exports     # before the first start, as your user (see below)
 docker compose up -d      # or: podman compose up -d
 ```
 
 Open `http://localhost:3000` (the host port follows `PORT` in `.env`). The database is created in `./data/` on first start; Trakt exports go in `./exports/`.
 
 On first start the Home page shows a **Getting started** list that walks you through language and country, the TMDB key, a viewing source and the AI model, each linking straight to the right Settings section.
+
+**Folder permissions.** The container runs as user `node` (uid 1000). If `./data` is missing, Docker creates it owned by root and the app cannot write the database (the log shows `EACCES: permission denied`): create both folders first. If your uid is not 1000 (`id -u`), also run `sudo chown 1000:1000 data exports`; with rootless Podman, `podman unshare chown 1000:1000 data exports`.
+
+**Update**:
+
+```bash
+docker compose pull && docker compose up -d
+```
+
+Pending database migrations are applied at startup ([Schema upgrades](docs/CONFIGURATION.md#schema-upgrades)). Back up `./data/` first: the database **and** `secret.key`, see [Backup and restore](docs/CONFIGURATION.md#backup-and-restore). To stay on a version, replace `latest` in `docker-compose.yml` with a tag such as `1.0.1` or `1`.
+
+### Build from source
+
+```bash
+git clone https://github.com/peppeg/watchsense.git
+cd watchsense
+cp .env.example .env
+mkdir -p data exports
+docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
+```
+
+`docker-compose.build.yml` adds the `build:` section and tags the result `watchsense:local`. To update: `git pull`, then the same command.
 
 ## Local development
 
@@ -135,7 +157,8 @@ See **[docs/CONFIGURATION.md](docs/CONFIGURATION.md)**:
 ```text
 watchsense/
 ├── Dockerfile               # multi-stage production image (Node 22)
-├── docker-compose.yml       # one service, volumes ./data and ./exports
+├── docker-compose.yml       # one service (GHCR image), volumes ./data and ./exports
+├── docker-compose.build.yml # override: build the image from source
 ├── .env.example             # environment variables template
 ├── db/schema.sql            # SQLite baseline schema (migration v1)
 ├── ui/                      # Nuxt 4 app (Vue UI + Nitro server)

@@ -1,9 +1,10 @@
+# Ready-made image (linux/amd64 + linux/arm64). Before the first start:
+#   mkdir -p data exports
+# Update: docker compose pull && docker compose up -d
+# Build from source instead: docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
 services:
   watchsense:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: watchsense:latest
+    image: ghcr.io/peppeg/watchsense:latest
     container_name: watchsense
     restart: unless-stopped
     ports:
