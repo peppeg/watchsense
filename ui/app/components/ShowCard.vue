@@ -71,7 +71,7 @@
       <div v-if="showProgress" class="mt-2.5 pt-1.5 border-t border-zinc-800/60">
         <div class="flex items-center justify-between text-[10px] text-zinc-400 mb-1">
           <span v-if="show.media_type === 'movie'" class="truncate">{{ t('common.movie') }}</span>
-          <!-- Serie in onda: in pari con gli episodi usciti, o solo "Completata" se segnata a mano -->
+          <!-- Completata a mano su una serie in onda: in pari con gli usciti o solo "Completata", mai N/N -->
           <span v-else-if="show.watch_status === 'completed' && airedSoFar" class="truncate">
             {{ (show.episode_count || 0) >= airedSoFar ? t('show.card.upToDate', { count: airedSoFar }) : t('show.watchStatus.completed') }}
           </span>
@@ -79,6 +79,8 @@
           <span v-else-if="show.watch_status === 'completed'" class="truncate">
             {{ show.tmdb_number_of_episodes ? t('show.card.progress', { watched: show.tmdb_number_of_episodes, total: show.tmdb_number_of_episodes }) : t('show.watchStatus.completed') }}
           </span>
+          <!-- In corso, serie in onda: in pari con gli episodi usciti (la barra resta su visti/totale) -->
+          <span v-else-if="airedSoFar && (show.episode_count || 0) >= airedSoFar" class="truncate">{{ t('show.card.upToDate', { count: airedSoFar }) }}</span>
           <span v-else-if="airedSoFar" class="truncate">{{ t('show.card.progressAired', { watched: show.episode_count || 1, total: show.tmdb_number_of_episodes, aired: airedSoFar }) }}</span>
           <span v-else class="truncate">{{ t('show.card.progress', { watched: show.episode_count || 1, total: show.tmdb_number_of_episodes || '?' }) }}</span>
           <span class="font-bold text-white font-mono ml-1">{{ calculatedProgress }}%</span>

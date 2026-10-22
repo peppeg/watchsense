@@ -70,21 +70,48 @@ describe('deriveWatchStatus / nextWatchStatus / watchProgress', () => {
     expect(nextWatchStatus('unwatched', { mediaType: 'movie', importedRows: 1 })).toBe('completed')
   })
 
-  it('completata = episodi usciti visti (serie in onda), altrimenti il totale', () => {
-    // VisionQuest: 8 episodi annunciati, 2 usciti
-    expect(deriveWatchStatus({ mediaType: 'tv', episodeCount: 2, totalEpisodes: 8, airedEpisodes: 2, platforms: 'stremio' })).toBe('completed')
-    expect(deriveWatchStatus({ mediaType: 'tv', episodeCount: 1, totalEpisodes: 8, airedEpisodes: 2, platforms: 'stremio' })).toBe('in_progress')
-    expect(deriveWatchStatus({ mediaType: 'tv', episodeCount: 2, totalEpisodes: 8, airedEpisodes: 3, platforms: 'stremio' })).toBe('in_progress')
+  it('completata = tutti gli episodi del totale TMDB; in pari con gli usciti = in corso', () => {
+    // VisionQuest: 8 episodi annunciati, 4 usciti e visti → in corso (in pari)
+    expect(deriveWatchStatus({ mediaType: 'tv', episodeCount: 4, totalEpisodes: 8, airedEpisodes: 4, platforms: 'stremio' })).toBe('in_progress')
+    expect(deriveWatchStatus({ mediaType: 'tv', episodeCount: 2, totalEpisodes: 8, airedEpisodes: 4, platforms: 'stremio' })).toBe('in_progress')
+    // Tutti gli 8 usciti e visti → completata
+    expect(deriveWatchStatus({ mediaType: 'tv', episodeCount: 8, totalEpisodes: 8, airedEpisodes: 8, platforms: 'stremio' })).toBe('completed')
+    // Tra una stagione e l'altra (nulla di nuovo annunciato): completata
+    expect(deriveWatchStatus({ mediaType: 'tv', episodeCount: 10, totalEpisodes: 10, airedEpisodes: 10 })).toBe('completed')
+    // TMDB annuncia una stagione nuova: il totale cresce e la serie torna in corso da sola
+    expect(deriveWatchStatus({ mediaType: 'tv', episodeCount: 10, totalEpisodes: 18, airedEpisodes: 10 })).toBe('in_progress')
     // Usciti ignoti: il totale, come prima
     expect(deriveWatchStatus({ mediaType: 'tv', episodeCount: 2, totalEpisodes: 8, airedEpisodes: null, platforms: 'stremio' })).toBe('in_progress')
     // Usciti oltre il totale (dati TMDB incoerenti): basta il totale
     expect(deriveWatchStatus({ mediaType: 'tv', episodeCount: 8, totalEpisodes: 8, airedEpisodes: 10 })).toBe('completed')
-    // Lo stato esplicito vince sempre su quello dedotto
+    // Totale ignoto: contano gli usciti; senza nessuno dei due, la regola del singolo episodio manuale
+    expect(deriveWatchStatus({ mediaType: 'tv', episodeCount: 4, totalEpisodes: null, airedEpisodes: 4, platforms: 'stremio' })).toBe('completed')
+    expect(deriveWatchStatus({ mediaType: 'tv', episodeCount: 3, totalEpisodes: null, airedEpisodes: 4, platforms: 'stremio' })).toBe('in_progress')
+    expect(deriveWatchStatus({ mediaType: 'tv', episodeCount: 1, totalEpisodes: null, airedEpisodes: null, platforms: 'netflix' })).toBe('completed')
+    expect(deriveWatchStatus({ mediaType: 'tv', episodeCount: 1, totalEpisodes: null, airedEpisodes: null, platforms: 'stremio' })).toBe('in_progress')
+    expect(deriveWatchStatus({ mediaType: 'movie', episodeCount: 1, totalEpisodes: null, airedEpisodes: null })).toBe('completed')
+    // Lo stato esplicito vince sempre su quello dedotto, anche "completata" su una serie in onda
     expect(deriveWatchStatus({ explicit: 'unwatched', mediaType: 'tv', episodeCount: 2, totalEpisodes: 8, airedEpisodes: 2 })).toBe('unwatched')
-    expect(episodeWatchStatus({ mediaType: 'tv', episodeCount: 2, totalEpisodes: 8, airedEpisodes: 2 })).toBe('completed')
-    expect(episodesToComplete(8, 2)).toBe(2)
+    expect(deriveWatchStatus({ explicit: 'completed', mediaType: 'tv', episodeCount: 4, totalEpisodes: 8, airedEpisodes: 4 })).toBe('completed')
+    expect(episodeWatchStatus({ mediaType: 'tv', episodeCount: 4, totalEpisodes: 8, airedEpisodes: 4 })).toBe('in_progress')
+    expect(episodesToComplete(8, 4)).toBe(8)
     expect(episodesToComplete(8, null)).toBe(8)
+    expect(episodesToComplete(null, 4)).toBe(4)
     expect(episodesToComplete(null, null)).toBe(0)
+    // Avanzamento della Libreria: in corso = visti/totale, completata (anche esplicita) = 100
+    expect(watchProgress('in_progress', 4, 8)).toBe(50)
+    expect(watchProgress('completed', 4, 8)).toBe(100)
+  })
+
+  it('ciclo del pulsante su una serie in onda in pari (4/4 usciti, 8 annunciati)', () => {
+    const facts = { mediaType: 'tv' as const, episodeCount: 4, totalEpisodes: 8, airedEpisodes: 4, platforms: 'stremio' }
+    const episodeStatus = episodeWatchStatus(facts)
+    expect(episodeStatus).toBe('in_progress')
+    const opts = { mediaType: 'tv' as const, importedRows: 4, episodeStatus }
+    expect(nextWatchStatus('in_progress', opts)).toBe('completed')
+    expect(nextWatchStatus('completed', opts)).toBe('unwatched')
+    // Da "non vista" torna allo stato degli episodi: in corso, non completata
+    expect(nextWatchStatus('unwatched', opts)).toBe('in_progress')
   })
 
   it('episodi usciti dai dettagli TMDB (last_episode_to_air + seasons, speciali esclusi)', () => {

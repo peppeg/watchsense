@@ -62,7 +62,11 @@
                 v-if="watchStatus === 'in_progress' && !isMovie"
                 class="text-xs text-sky-400 font-mono bg-sky-950/40 border border-sky-800/50 px-2.5 py-0.5 rounded"
               >
-                <template v-if="airedSoFar">
+                <!-- Serie in onda in pari con gli episodi usciti: resta in corso, con la nota "in pari" -->
+                <template v-if="airedSoFar && data.show.episode_count >= airedSoFar">
+                  {{ t('show.watchStatus.inProgress') }} · {{ t('show.upToDate', { count: airedSoFar }) }}
+                </template>
+                <template v-else-if="airedSoFar">
                   {{ t('show.episodesWatchedAired', { watched: data.show.episode_count, total: data.show.tmdb_number_of_episodes, aired: airedSoFar }) }}
                 </template>
                 <template v-else>
@@ -77,8 +81,8 @@
                 <span v-if="isMovie">
                   {{ t('show.movieWatched') }}
                 </span>
-                <!-- Serie in onda: in pari con gli episodi usciti; segnata a mano senza averli
-                     visti tutti: solo "Completata" (nessun N/N di episodi non ancora usciti) -->
+                <!-- Serie in onda segnata a mano come completata: in pari con gli episodi usciti,
+                     o solo "Completata" (nessun N/N di episodi non ancora usciti) -->
                 <span v-else-if="airedSoFar">
                   {{ data.show.episode_count >= airedSoFar ? t('show.upToDate', { count: airedSoFar }) : t('show.watchStatus.completed') }}
                 </span>

@@ -379,24 +379,21 @@ const filteredShows = computed(() => {
 
   return data.value.shows.filter((s: any) => {
     // Stato scelto dall'utente nella scheda serie (vince sulla stima dagli episodi) o serie
-    // completata secondo il server (anche "in pari" con gli episodi usciti): stesso stato della scheda
+    // completata secondo il server: stesso stato della scheda
     if (s.user_status === 'completed' || s.user_status === 'in_progress' || s.user_status === 'unwatched' || s.watch_status === 'completed') {
       const tab = s.watch_status === 'unwatched' ? 'to_start' : s.watch_status
       return tab === currentStatus.value
     }
+    // Non completata secondo il server (utils/watch-status): "Completate" solo da watch_status,
+    // anche se la percentuale è alta (serie in onda in pari, totale ignoto); le serie appena
+    // iniziate vanno in "Da iniziare", le altre in "In corso"
     const prog = typeof s.progress === 'number' ? s.progress : 0
     const epWatched = s.episode_count || 1
-    const totalEp = s.tmdb_number_of_episodes || 0
+    const justStarted = s.watch_status === 'unwatched' || epWatched <= 1 || prog <= 5
 
-    if (currentStatus.value === 'completed') {
-      return prog >= 90 || (totalEp > 0 && epWatched >= totalEp)
-    }
-    if (currentStatus.value === 'in_progress') {
-      return prog > 5 && prog < 90 && epWatched > 1
-    }
-    if (currentStatus.value === 'to_start') {
-      return epWatched <= 1 || prog <= 5
-    }
+    if (currentStatus.value === 'completed') return false
+    if (currentStatus.value === 'in_progress') return !justStarted
+    if (currentStatus.value === 'to_start') return justStarted
     return true
   })
 })

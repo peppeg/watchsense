@@ -37,7 +37,7 @@ export default defineEventHandler(async (event) => {
   const importedRows = showRow?.imported_rows || 0
 
   // Stato richiesto (body.status) o il successivo del ciclo:
-  // in_progress -> completed -> unwatched -> in_progress (o completed: film, serie in pari)
+  // in_progress -> completed -> unwatched -> in_progress (o completed: film, serie già completata dagli episodi importati)
   let nextStatus = parseWatchStatus(body.status)
   if (body.status !== undefined && !nextStatus) {
     throw createError({ statusCode: 400, message: "Stato non valido: atteso 'unwatched', 'in_progress' o 'completed'" })

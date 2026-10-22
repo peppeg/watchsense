@@ -8,6 +8,8 @@ import { seedShow } from './helpers'
 // Caso reale: VisionQuest (tmdb 213375), "Returning Series", 8 episodi annunciati e 2 usciti.
 // 👍 sulla scheda mentre non era in libreria → "completata 8/8"; poi Stremio importa S1E1–S1E2,
 // ma lo stato esplicito vinceva; "non vista" nascondeva gli episodi e la sync non li ripristinava.
+// Poi (4 usciti su 8, tutti visti) risultava "completata" in Libreria: una serie in onda in pari
+// con gli episodi usciti resta "in corso"; completata solo con tutti gli episodi del totale TMDB.
 
 const dir = mkdtempSync(join(tmpdir(), 'watchsense-test-'))
 process.env.DATABASE_PATH = join(dir, 'test.db')
@@ -99,7 +101,7 @@ describe('VisionQuest: stato di visione', () => {
     expect(show).toMatchObject({ watch_status: 'in_progress', next_watch_status: 'completed', tmdb_number_of_episodes: 8, tmdb_aired_episodes: 2 })
   })
 
-  it('completata a mano, poi import di S1E1–S1E2: lo stato esplicito cede, in pari con i 2 usciti', async () => {
+  it('completata a mano, poi import di S1E1–S1E2: lo stato esplicito cede, in corso (in pari con i 2 usciti)', async () => {
     // Come faceva il vecchio 👍: completata esplicita + riga manuale segnaposto
     await click({ status: 'completed' })
     expect(explicit()).toBe('completed')
@@ -111,14 +113,45 @@ describe('VisionQuest: stato di visione', () => {
     expect((getDb().prepare('SELECT COUNT(*) c FROM shows WHERE tmdb_id = ? AND is_manual = 1').get(VQ) as any).c).toBe(0)
 
     const show = await detail()
-    expect(show).toMatchObject({ watch_status: 'completed', episode_count: 2, tmdb_number_of_episodes: 8, tmdb_aired_episodes: 2, next_watch_status: 'unwatched' })
+    expect(show).toMatchObject({ watch_status: 'in_progress', episode_count: 2, tmdb_number_of_episodes: 8, tmdb_aired_episodes: 2, next_watch_status: 'completed' })
     const lib = listShows({ query: {} }).shows.find((s: any) => s.tmdb_id === VQ)
-    expect(lib).toMatchObject({ user_status: null, watch_status: 'completed', progress: 100, tmdb_aired_episodes: 2 })
+    expect(lib).toMatchObject({ user_status: null, watch_status: 'in_progress', progress: 25, tmdb_aired_episodes: 2 })
 
-    // Esce S1E3: non più in pari → in corso (2/8, 3 usciti)
+    // Esce S1E3: resta in corso, non più in pari (2/8, 3 usciti)
     lastAired = 3
     clearTmdbCaches()
     expect(await detail()).toMatchObject({ watch_status: 'in_progress', tmdb_aired_episodes: 3 })
+  })
+
+  it('4 usciti su 8, tutti visti: in corso in scheda e Libreria; 8/8 visti: completata', async () => {
+    lastAired = 4
+    await runIngest(stremioRows([1, 2, 3, 4]))
+    expect(await detail()).toMatchObject({ watch_status: 'in_progress', episode_count: 4, tmdb_number_of_episodes: 8, tmdb_aired_episodes: 4, next_watch_status: 'completed' })
+    let lib = listShows({ query: {} }).shows.find((s: any) => s.tmdb_id === VQ)
+    expect(lib).toMatchObject({ user_status: null, watch_status: 'in_progress', progress: 50, episode_count: 4, tmdb_aired_episodes: 4 })
+
+    // Escono e si vedono tutti gli 8: completata
+    lastAired = 8
+    clearTmdbCaches()
+    await runIngest(stremioRows([5, 6, 7, 8]))
+    expect(await detail()).toMatchObject({ watch_status: 'completed', episode_count: 8, tmdb_aired_episodes: 8 })
+    lib = listShows({ query: {} }).shows.find((s: any) => s.tmdb_id === VQ)
+    expect(lib).toMatchObject({ watch_status: 'completed', progress: 100 })
+  })
+
+  it('completata esplicita su una serie in onda: resta completata, senza inventare episodi', async () => {
+    lastAired = 4
+    await runIngest(stremioRows([1, 2, 3, 4]))
+    // Dall'"in corso" degli episodi il clic porta a completata (esplicita, diversa dagli episodi)
+    expect((await click()).status).toBe('completed')
+    expect(explicit()).toBe('completed')
+    expect(await detail()).toMatchObject({ watch_status: 'completed', episode_count: 4, tmdb_number_of_episodes: 8, tmdb_aired_episodes: 4, next_watch_status: 'unwatched' })
+    const lib = listShows({ query: {} }).shows.find((s: any) => s.tmdb_id === VQ)
+    // La UI mostra "in pari · 4/4 usciti" (episode_count ≥ usciti), mai 8/8
+    expect(lib).toMatchObject({ user_status: 'completed', watch_status: 'completed', episode_count: 4, tmdb_number_of_episodes: 8, tmdb_aired_episodes: 4 })
+    const card = readFileSync(join(__dirname, '../app/components/ShowCard.vue'), 'utf8')
+    const completedAiring = card.slice(card.indexOf(`show.watch_status === 'completed' && airedSoFar`))
+    expect(completedAiring.slice(0, completedAiring.indexOf('</span>'))).toContain('show.card.upToDate')
   })
 
   it('stato del DB reale (non vista esplicita + 2 episodi Stremio, usciti ignoti): un clic lo sistema', async () => {
@@ -133,15 +166,17 @@ describe('VisionQuest: stato di visione', () => {
 
     // La scheda aggiorna gli episodi usciti da TMDB e lo scrive nel DB
     const show = await detail()
-    expect(show).toMatchObject({ watch_status: 'unwatched', imported_rows: 2, episode_count: 2, tmdb_aired_episodes: 2, next_watch_status: 'completed' })
+    expect(show).toMatchObject({ watch_status: 'unwatched', imported_rows: 2, episode_count: 2, tmdb_aired_episodes: 2, next_watch_status: 'in_progress' })
     expect((getDb().prepare('SELECT MIN(tmdb_aired_episodes) a FROM shows WHERE tmdb_id = ?').get(VQ) as any).a).toBe(2)
 
-    // Un clic: torna allo stato degli episodi importati, senza stato esplicito
-    expect((await click()).status).toBe('completed')
+    // Un clic: torna allo stato degli episodi importati (in corso, in pari), senza stato esplicito
+    expect((await click()).status).toBe('in_progress')
     expect(explicit()).toBeNull()
-    expect(await detail()).toMatchObject({ watch_status: 'completed', episode_count: 2 })
+    expect(await detail()).toMatchObject({ watch_status: 'in_progress', episode_count: 2 })
 
-    // Il ciclo resta: completata → non vista (esplicita) → completata
+    // Il ciclo resta: in corso → completata (esplicita) → non vista (esplicita)
+    expect((await click()).status).toBe('completed')
+    expect(explicit()).toBe('completed')
     expect((await click()).status).toBe('unwatched')
     expect(explicit()).toBe('unwatched')
     // Una sync con un episodio nuovo ripristina comunque gli episodi importati
@@ -149,7 +184,7 @@ describe('VisionQuest: stato di visione', () => {
     clearTmdbCaches()
     await runIngest(stremioRows([3]))
     expect(explicit()).toBeNull()
-    expect(await detail()).toMatchObject({ watch_status: 'completed', episode_count: 3, tmdb_aired_episodes: 3 })
+    expect(await detail()).toMatchObject({ watch_status: 'in_progress', episode_count: 3, tmdb_aired_episodes: 3 })
   })
 
   it('una sync senza righe nuove non tocca lo stato esplicito', async () => {

@@ -7,8 +7,13 @@
  * di quel titolo, runIngest cancella lo stato esplicito (releaseExplicitStatus in
  * utils/ingest.ts) e lo stato torna a dedursi dagli episodi.
  *
- * "Completata" si misura sugli episodi USCITI (serie ancora in onda), non su quelli
- * previsti: con 2 episodi usciti su 8 annunciati, averne visti 2 vuol dire essere in pari.
+ * "Completata" (dedotta) vuol dire tutti gli episodi che TMDB elenca (tmdb_number_of_episodes),
+ * usciti o annunciati: con 4 episodi usciti su 8, averne visti 4 vuol dire essere in pari, ma
+ * la serie resta "in corso" (la UI lo dice con la nota "in pari"). Tra una stagione e l'altra
+ * (usciti = totale) è completata; quando TMDB annuncia episodi nuovi il totale cresce e torna
+ * in corso da sola. Gli episodi usciti contano solo se il totale è ignoto.
+ * Una "completata" esplicita su una serie in onda resta completata: la UI non mostra N/N
+ * degli episodi non usciti (vedi ShowCard / ShowDetail).
  *
  * Le statistiche sul numero di episodi restano sulle righe reali di `shows`: segnare una
  * serie come completata non inventa episodi.
@@ -35,12 +40,14 @@ export interface WatchFacts {
   platforms?: string | null
 }
 
-/** Episodi che servono per "completata": gli usciti se noti, altrimenti il totale (0 = ignoto). */
+/**
+ * Episodi che servono per "completata": il totale TMDB (anche gli episodi annunciati e non
+ * ancora usciti); gli usciti solo se il totale è ignoto (0 = entrambi ignoti).
+ */
 export function episodesToComplete(totalEpisodes?: number | null, airedEpisodes?: number | null): number {
   const total = totalEpisodes && totalEpisodes > 0 ? totalEpisodes : 0
-  const aired = airedEpisodes && airedEpisodes > 0 ? airedEpisodes : 0
-  if (!aired) return total
-  return total ? Math.min(aired, total) : aired
+  if (total) return total
+  return airedEpisodes && airedEpisodes > 0 ? airedEpisodes : 0
 }
 
 export function deriveWatchStatus(f: WatchFacts): WatchStatus {
@@ -65,9 +72,10 @@ export function episodeWatchStatus(f: WatchFacts): WatchStatus {
  * Stato successivo del pulsante della scheda: in corso → completata → non vista → in corso.
  * Da "non vista":
  * - film: completato (una visione basta);
- * - serie con episodi importati che secondo gli episodi è già completata (in pari con gli
- *   episodi usciti): torna a completata, cioè allo stato degli episodi importati;
- * - altrimenti in corso, anche per una serie non ancora in libreria (riga manuale).
+ * - serie con episodi importati che secondo gli episodi è già completata (visti tutti gli
+ *   episodi del totale TMDB): torna a completata, cioè allo stato degli episodi importati;
+ * - altrimenti in corso: serie a metà, serie in onda in pari con gli episodi usciti (per gli
+ *   episodi è "in corso"), serie non ancora in libreria (riga manuale).
  */
 export function nextWatchStatus(
   current: WatchStatus,
