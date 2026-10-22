@@ -6,6 +6,7 @@
 // lo scheduler manda il Bearer, l'SSR inoltra il cookie del browser.
 
 import { SESSION_COOKIE, authDecision, configuredToken } from '../utils/auth'
+import { userError, userMessage } from '../utils/user-message'
 
 export default defineEventHandler((event) => {
   const token = configuredToken()
@@ -19,5 +20,5 @@ export default defineEventHandler((event) => {
   if (decision === 'allow') return
 
   setResponseHeader(event, 'WWW-Authenticate', 'Bearer')
-  throw createError({ statusCode: 401, message: 'Autenticazione richiesta.' })
+  throw userError(401, userMessage('errors.auth.required'))
 })

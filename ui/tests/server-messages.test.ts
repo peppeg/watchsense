@@ -100,7 +100,7 @@ describe('codici usati dal server', () => {
     const codes = new Set<string>()
     for (const file of sources(join(__dirname, '..', 'server'))) {
       const text = readFileSync(file, 'utf8')
-      for (const m of text.matchAll(/(?:userMessage\(|code: )'([a-z][\w.]*)'/gi)) codes.add(m[1]!)
+      for (const m of text.matchAll(/(?:userMessage\(|new LlmError\(|code: )'([a-z][\w.]*)'/gi)) codes.add(m[1]!)
       for (const m of text.matchAll(/'(errors\.config\.\w+)'/g)) codes.add(m[1]!)
     }
     expect(codes.size).toBeGreaterThan(30)

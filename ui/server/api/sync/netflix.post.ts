@@ -53,8 +53,9 @@ export default defineEventHandler(async (event) => {
         signal: AbortSignal.timeout(30_000),
       })
     } catch (err: any) {
+      const cause = err?.cause?.code || err?.name || err?.message
       throw new UserMessageError(userMessage('sync.netflix.unreachable', {
-        cause: String(err?.cause?.code || err?.name || err?.message || 'errore di rete'),
+        cause: cause ? String(cause) : { code: 'errors.network' },
       }))
     }
 

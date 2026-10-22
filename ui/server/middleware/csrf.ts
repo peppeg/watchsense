@@ -4,6 +4,7 @@
 // Richieste senza Origin/Referer (curl, $fetch interno dello scheduler) restano consentite.
 
 import { isApiPath, normalizePath } from '../utils/request-path'
+import { userError, userMessage } from '../utils/user-message'
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS'])
 // Bookmarklet cross-origin (fetch CORS + fallback form POST): gestito a parte
@@ -49,7 +50,7 @@ export default defineEventHandler((event) => {
       try { return new URL(source).protocol } catch { return 'http:' }
     })()
     if (!sourceHost || !requestHosts(event, protocol).includes(sourceHost)) {
-      throw createError({ statusCode: 403, message: 'Richiesta cross-origin non consentita.' })
+      throw userError(403, userMessage('errors.csrf.crossOrigin'))
     }
   }
 
@@ -64,5 +65,5 @@ export default defineEventHandler((event) => {
   } else if (contentType === 'multipart/form-data' && MULTIPART_PATHS.has(path)) {
     return
   }
-  throw createError({ statusCode: 415, message: 'Content-Type non supportato: usa application/json.' })
+  throw userError(415, userMessage('errors.csrf.contentType'))
 })

@@ -1,4 +1,5 @@
-import { buildLlmHeaders, buildModelsUrl, getLlmConfig, sameBaseUrl, truncateMessage } from '../../utils/llm'
+import { buildLlmHeaders, buildModelsUrl, getLlmConfig, networkCause, sameBaseUrl } from '../../utils/llm'
+import { userError, userMessage } from '../../utils/user-message'
 
 // Elenco modelli del provider (GET {base}/models), per popolare la tendina in Impostazioni
 export default defineEventHandler(async (event) => {
@@ -7,7 +8,7 @@ export default defineEventHandler(async (event) => {
 
   const baseUrl = String(body.base_url || current.base_url || '').trim().replace(/\/+$/, '')
   if (!/^https?:\/\//i.test(baseUrl)) {
-    throw createError({ statusCode: 400, message: 'Base URL non valido: deve iniziare con http:// o https://' })
+    throw userError(400, userMessage('errors.llm.invalidBaseUrl'))
   }
 
   // La chiave salvata si riusa solo se il base_url richiesto è quello salvato
@@ -24,17 +25,11 @@ export default defineEventHandler(async (event) => {
       signal: AbortSignal.timeout(15_000),
     })
   } catch (err: any) {
-    throw createError({
-      statusCode: 502,
-      message: truncateMessage(`Impossibile raggiungere il provider (${baseUrl}): ${err?.cause?.message || err?.message || 'errore di rete'}`),
-    })
+    throw userError(502, userMessage('errors.llm.modelsUnreachable', { url: baseUrl, detail: networkCause(err) }))
   }
 
   if (!resp.ok) {
-    throw createError({
-      statusCode: 502,
-      message: `Il provider ha risposto ${resp.status} alla richiesta dei modelli.`,
-    })
+    throw userError(502, userMessage('errors.llm.modelsHttp', { status: resp.status }))
   }
 
   const data: any = await resp.json().catch(() => null)

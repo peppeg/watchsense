@@ -1,4 +1,5 @@
 import { chatCompletion, getLlmConfig, isLocalBaseUrl, LlmError, sameBaseUrl } from '../../utils/llm'
+import { userError, userMessage } from '../../utils/user-message'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event).catch(() => ({})) || {}
@@ -7,7 +8,7 @@ export default defineEventHandler(async (event) => {
   const currentLlm = getLlmConfig()
   const baseUrl = String(body.base_url || currentLlm.base_url || '').trim().replace(/\/+$/, '')
   if (!/^https?:\/\//i.test(baseUrl)) {
-    throw createError({ statusCode: 400, message: 'Base URL non valido: deve iniziare con http:// o https://' })
+    throw userError(400, userMessage('errors.llm.invalidBaseUrl'))
   }
 
   // La chiave salvata (DB o env) si riusa solo se il base_url richiesto è quello della config effettiva
@@ -15,10 +16,7 @@ export default defineEventHandler(async (event) => {
   if (!apiKey || apiKey.includes('••••••••')) {
     apiKey = sameBaseUrl(baseUrl, currentLlm.base_url) ? currentLlm.api_key : ''
     if (!apiKey && !isLocalBaseUrl(baseUrl)) {
-      throw createError({
-        statusCode: 400,
-        message: 'API Key obbligatoria per testare un provider diverso da quello salvato.',
-      })
+      throw userError(400, userMessage('errors.llm.testKeyRequired'))
     }
   }
   const model = String(body.model || '').trim() || currentLlm.model
@@ -39,12 +37,11 @@ export default defineEventHandler(async (event) => {
       model,
       latencyMs,
       reply,
-      message: `Connessione riuscita in ${latencyMs}ms con il modello ${model}!`,
+      ...userMessage('settings.llm.testDone', { ms: latencyMs, model }),
     }
   } catch (err: any) {
-    throw createError({
-      statusCode: err instanceof LlmError ? err.status : 500,
-      message: err instanceof LlmError ? err.message : 'Errore interno durante il test LLM.',
-    })
+    if (err instanceof LlmError) throw userError(err.status, err.userMessage)
+    console.error('LLM test failed:', err)
+    throw userError(500, userMessage('errors.llm.testInternal'))
   }
 })

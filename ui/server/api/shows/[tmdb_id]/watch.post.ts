@@ -3,6 +3,7 @@ import { enrichShowRecord, requireMediaType } from '../../../utils/sync-helpers'
 import { fetchShowDetails } from '../../../utils/tmdb'
 import { platformFromProvider } from '../../../utils/ingest-normalize'
 import { deriveWatchStatus, episodeWatchStatus, nextWatchStatus, parseWatchStatus } from '../../../utils/watch-status'
+import { userError, userMessage } from '../../../utils/user-message'
 
 export default defineEventHandler(async (event) => {
   const db = getDb()
@@ -40,7 +41,7 @@ export default defineEventHandler(async (event) => {
   // in_progress -> completed -> unwatched -> in_progress (o completed: film, serie già completata dagli episodi importati)
   let nextStatus = parseWatchStatus(body.status)
   if (body.status !== undefined && !nextStatus) {
-    throw createError({ statusCode: 400, message: "Stato non valido: atteso 'unwatched', 'in_progress' o 'completed'" })
+    throw userError(400, userMessage('errors.show.invalidWatchStatus'))
   }
   nextStatus ??= nextWatchStatus(currentStatus, { mediaType, importedRows, episodeStatus })
 

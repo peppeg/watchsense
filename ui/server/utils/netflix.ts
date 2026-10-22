@@ -77,7 +77,7 @@ export function jsLiteralToJson(src: string): string {
       }
 
       const e = src[i + 1]
-      if (e === undefined) throw new Error('escape non terminato')
+      if (e === undefined) throw new Error('unterminated escape')
       switch (e) {
         case '"': case '\\': case '/': case 'b': case 'f': case 'n': case 'r': case 't':
           out += '\\' + e; i += 2; break
@@ -87,16 +87,16 @@ export function jsLiteralToJson(src: string): string {
           if (src[i + 2] === '{') {
             const close = src.indexOf('}', i + 3)
             const cp = close > 0 ? parseInt(src.slice(i + 3, close), 16) : NaN
-            if (!Number.isFinite(cp) || cp > 0x10ffff) throw new Error('escape \\u{} non valido')
+            if (!Number.isFinite(cp) || cp > 0x10ffff) throw new Error('invalid \\u{} escape')
             out += JSON.stringify(String.fromCodePoint(cp)).slice(1, -1)
             i = close + 1
             break
           }
-          throw new Error('escape \\u non valido')
+          throw new Error('invalid \\u escape')
         }
         case 'x': {
           const hex = src.slice(i + 2, i + 4)
-          if (!/^[0-9a-fA-F]{2}$/.test(hex)) throw new Error('escape \\x non valido')
+          if (!/^[0-9a-fA-F]{2}$/.test(hex)) throw new Error('invalid \\x escape')
           out += '\\u00' + hex.toLowerCase()
           i += 4
           break
@@ -104,7 +104,7 @@ export function jsLiteralToJson(src: string): string {
         case '\'': out += '\''; i += 2; break
         case 'v': out += '\\u000b'; i += 2; break
         case '0':
-          if (/[0-9]/.test(src[i + 2] || '')) throw new Error('escape ottale non supportato')
+          if (/[0-9]/.test(src[i + 2] || '')) throw new Error('octal escapes are not supported')
           out += '\\u0000'; i += 2; break
         case '\r':
           i += src[i + 2] === '\n' ? 3 : 2; break // line continuation
@@ -112,12 +112,12 @@ export function jsLiteralToJson(src: string): string {
           i += 2; break
         default:
           // identity escape (e.g. \- \&): keep the character itself
-          if (/[0-9]/.test(e)) throw new Error('escape ottale non supportato')
+          if (/[0-9]/.test(e)) throw new Error('octal escapes are not supported')
           out += e.charCodeAt(0) < 0x20 ? hex4(e.charCodeAt(0)) : e
           i += 2
       }
     }
-    if (!closed) throw new Error('stringa non terminata')
+    if (!closed) throw new Error('unterminated string')
   }
   return out
 }
@@ -136,7 +136,7 @@ export function parseNetflixViewingActivity(html: string): any[] {
   try {
     ctx = JSON.parse(jsLiteralToJson(literal))
   } catch (err: any) {
-    throw new UserMessageError(userMessage('sync.netflix.pageFormat', { detail: String(err?.message || 'parsing fallito') }))
+    throw new UserMessageError(userMessage('sync.netflix.pageFormat', { detail: String(err?.message || 'parse failed') }))
   }
 
   const items = ctx?.models?.vaModel?.data?.viewedItems

@@ -1,6 +1,7 @@
 import { getDb } from '../utils/db'
 import { searchTmdbByTitle, type MediaType } from '../utils/sync-helpers'
 import { chatCompletion, extractJsonArray, LlmError } from '../utils/llm'
+import { errorDetail, userError, userMessage, UserMessageError } from '../utils/user-message'
 import { anySeriesRows, profileSeriesRows, seriesRows } from '../utils/series-filter'
 import { getLocaleConfig } from '../utils/locale'
 import { localizeGenre, normalizeGenre, parseStoredGenres, storedGenres } from '../utils/genres'
@@ -131,7 +132,7 @@ export default defineEventHandler(async (event) => {
       }))
     } catch (e: any) {
       if (e instanceof LlmError && e.status !== 400) {
-        throw new Error(`${e.message}. Verifica la chiave API o il credito nelle Impostazioni.`)
+        throw new UserMessageError(userMessage('errors.llm.checkKey', { detail: errorDetail(e) }))
       }
       throw e
     }
@@ -139,7 +140,7 @@ export default defineEventHandler(async (event) => {
     // Parse JSON from response
     const recs = extractJsonArray(content)
     if (!recs) {
-      throw new Error('Il modello LLM non ha restituito un formato JSON valido.')
+      throw new UserMessageError(userMessage('errors.llm.invalidJson'))
     }
 
     // Enrich with TMDB ID and poster (async, outside the DB transaction)
@@ -210,6 +211,6 @@ export default defineEventHandler(async (event) => {
 
     return { ok: true, count: rows.length, batchId: Number(batchId), genre: genreFilter || null }
   } catch (e: any) {
-    throw createError({ statusCode: 500, message: `LLM error: ${e.message}` })
+    throw userError(500, userMessage('errors.llm.generateFailed', { detail: errorDetail(e) }))
   }
 })

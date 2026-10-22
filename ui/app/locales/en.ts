@@ -643,6 +643,8 @@ export const en = {
       saveFailed: 'Error: {detail}',
       testOk: 'Connected ({ms} ms) • Reply: {reply}',
       testFailed: 'Error: {detail}',
+      // Esito di POST /api/llm/test (la UI mostra testOk)
+      testDone: 'Connected in {ms} ms with model {model}!',
     },
     profile: {
       summaryTitle: 'Taste profile',
@@ -797,6 +799,43 @@ export const en = {
     auth: {
       tooManyAttempts: 'Too many attempts: try again in {seconds} seconds.',
       invalidToken: 'Invalid token.',
+      required: 'Authentication required.',
+    },
+    csrf: {
+      crossOrigin: 'Cross-origin request not allowed.',
+      contentType: 'Unsupported Content-Type: use application/json.',
+    },
+    api: {
+      notFound: 'API endpoint not found: {method} {path}',
+    },
+    // Causa generica, usata come parametro {detail}/{cause}
+    network: 'network error',
+    show: {
+      invalidWatchStatus: "Invalid status: expected 'unwatched', 'in_progress' or 'completed'",
+    },
+    similar: {
+      notLiked: 'Tailored AI picks are only available for 👍 titles that count toward the taste profile.',
+      failed: 'Could not generate the tailored AI picks: {detail}',
+      empty: 'The model returned no usable picks.',
+    },
+    llm: {
+      invalidBaseUrl: 'Invalid base URL: it must start with http:// or https://',
+      modelsUnreachable: 'Could not reach the provider ({url}): {detail}',
+      modelsHttp: 'The provider answered {status} to the models request.',
+      testKeyRequired: 'An API key is required to test a provider other than the saved one.',
+      testInternal: 'Internal error during the LLM test.',
+      baseUrlMissing: 'LLM provider base URL missing. Set it in Settings.',
+      apiKeyMissing: 'LLM API key missing for a remote provider. Set it in Settings.',
+      unreachable: 'Could not reach the LLM provider ({url}): {detail}',
+      timeout: 'timeout after {seconds}s',
+      providerError: 'Error from the LLM provider ({status}): {detail}',
+      invalidResponse: 'invalid response',
+      notJson: 'The LLM provider response is not JSON.',
+      checkKey: '{detail}. Check the API key or the credit in Settings.',
+      invalidJson: 'The LLM did not return valid JSON.',
+      generateFailed: 'LLM error: {detail}',
+      emptySummary: 'The LLM generated no reply.',
+      summaryFailed: 'Could not generate the profile summary: {detail}',
     },
     config: {
       invalidAppLocale: 'Invalid app language (en, it)',

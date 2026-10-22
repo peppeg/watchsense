@@ -51,6 +51,20 @@ export class UserMessageError extends Error {
   }
 }
 
+/** Codice e parametri di un messaggio, da usare come parametro di un altro (es. `detail`). */
+export function messagePart(msg: MessagePart): MessagePart {
+  return msg.params && Object.keys(msg.params).length ? { code: msg.code, params: msg.params } : { code: msg.code }
+}
+
+/**
+ * Dettaglio di un errore come parametro: il messaggio con codice se l'errore ne ha uno
+ * (UserMessageError, LlmError), altrimenti il suo testo (es. errori di rete o di parsing).
+ */
+export function errorDetail(err: unknown): MessageParam {
+  if (err instanceof UserMessageError && err.userMessage.code) return messagePart(err.userMessage)
+  return String((err as any)?.message || err)
+}
+
 /** Campi del codice da salvare o inviare insieme al testo (niente chiavi vuote; nulla senza codice). */
 export function messageFields(msg: UserMessage): Partial<Omit<UserMessage, 'message'>> {
   if (!msg.code) return {}

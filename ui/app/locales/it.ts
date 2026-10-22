@@ -617,6 +617,7 @@ export const it: Messages = {
       saveFailed: 'Errore: {detail}',
       testOk: 'Connesso ({ms} ms) • Risposta: {reply}',
       testFailed: 'Errore: {detail}',
+      testDone: 'Connessione riuscita in {ms}ms con il modello {model}!',
     },
     profile: {
       summaryTitle: 'Profilo gusti',
@@ -766,6 +767,42 @@ export const it: Messages = {
     auth: {
       tooManyAttempts: 'Troppi tentativi: riprova tra {seconds} secondi.',
       invalidToken: 'Token non valido.',
+      required: 'Autenticazione richiesta.',
+    },
+    csrf: {
+      crossOrigin: 'Richiesta cross-origin non consentita.',
+      contentType: 'Content-Type non supportato: usa application/json.',
+    },
+    api: {
+      notFound: 'Endpoint API non trovato: {method} {path}',
+    },
+    network: 'errore di rete',
+    show: {
+      invalidWatchStatus: "Stato non valido: atteso 'unwatched', 'in_progress' o 'completed'",
+    },
+    similar: {
+      notLiked: 'I consigli AI sono disponibili solo per i titoli con 👍 che contano per il profilo dei gusti.',
+      failed: 'Generazione dei consigli AI non riuscita: {detail}',
+      empty: 'Il modello non ha restituito consigli utilizzabili.',
+    },
+    llm: {
+      invalidBaseUrl: 'Base URL non valido: deve iniziare con http:// o https://',
+      modelsUnreachable: 'Impossibile raggiungere il provider ({url}): {detail}',
+      modelsHttp: 'Il provider ha risposto {status} alla richiesta dei modelli.',
+      testKeyRequired: 'API Key obbligatoria per testare un provider diverso da quello salvato.',
+      testInternal: 'Errore interno durante il test LLM.',
+      baseUrlMissing: 'Base URL del provider LLM mancante. Configuralo nelle Impostazioni.',
+      apiKeyMissing: 'API Key LLM mancante per un provider remoto. Configurala nelle Impostazioni.',
+      unreachable: 'Impossibile raggiungere il provider LLM ({url}): {detail}',
+      timeout: 'timeout dopo {seconds}s',
+      providerError: 'Errore dal provider LLM ({status}): {detail}',
+      invalidResponse: 'risposta non valida',
+      notJson: 'Risposta del provider LLM non in formato JSON.',
+      checkKey: '{detail}. Verifica la chiave API o il credito nelle Impostazioni.',
+      invalidJson: 'Il modello LLM non ha restituito un formato JSON valido.',
+      generateFailed: 'Errore LLM: {detail}',
+      emptySummary: 'Nessuna risposta generata dal modello LLM.',
+      summaryFailed: 'Impossibile generare la sintesi del profilo: {detail}',
     },
     config: {
       invalidAppLocale: 'Lingua dell\'app non valida (en, it)',

@@ -4,6 +4,7 @@ import { profileSeriesRows } from '../../utils/series-filter'
 import { getLocaleConfig } from '../../utils/locale'
 import { localizeGenre, parseStoredGenres } from '../../utils/genres'
 import { buildTasteSummaryPrompt } from '../../utils/llm-prompts'
+import { errorDetail, userError, userMessage, UserMessageError } from '../../utils/user-message'
 
 export default defineEventHandler(async () => {
   const db = getDb()
@@ -54,7 +55,7 @@ export default defineEventHandler(async () => {
     // Rimuove eventuali blocchi di ragionamento dei modelli "thinking"
     const summary = content.replace(/<think>[\s\S]*?<\/think>/gi, '').trim()
 
-    if (!summary) throw new Error('Nessuna risposta generata dal modello LLM.')
+    if (!summary) throw new UserMessageError(userMessage('errors.llm.emptySummary'))
 
     const setConfig = db.prepare('INSERT OR REPLACE INTO config (key, value) VALUES (?, ?)')
     setConfig.run('taste_ai_summary', summary)
@@ -66,9 +67,7 @@ export default defineEventHandler(async () => {
       updated_at: new Date().toISOString(),
     }
   } catch (e: any) {
-    throw createError({
-      statusCode: e instanceof LlmError && e.status === 400 ? 400 : 500,
-      message: `Impossibile generare la sintesi del profilo: ${e.message}`,
-    })
+    throw userError(e instanceof LlmError && e.status === 400 ? 400 : 500,
+      userMessage('errors.llm.summaryFailed', { detail: errorDetail(e) }))
   }
 })

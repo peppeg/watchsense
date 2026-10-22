@@ -1,6 +1,7 @@
 import { getDb } from './db'
 import { LLM_CONFIG_KEY, readSecretValue } from './secrets'
 import { encryptSecret } from './secret-key'
+import { userMessage, UserMessageError, type MessageParam } from './user-message'
 
 // Configurazione LLM condivisa: qualsiasi provider OpenAI-compatibile
 
@@ -166,14 +167,23 @@ export function truncateMessage(msg: string, max = MAX_ERROR_LENGTH): string {
   return clean.length > max ? `${clean.slice(0, max)}…` : clean
 }
 
-/** Errore LLM normalizzato (status HTTP del provider, messaggio troncato). */
-export class LlmError extends Error {
+/**
+ * Errore LLM normalizzato: status HTTP del provider e messaggio con codice (`errors.llm.*`).
+ * I dettagli remoti (testo del provider, causa di rete) sono parametri già troncati.
+ */
+export class LlmError extends UserMessageError {
   status: number
-  constructor(message: string, status = 502) {
-    super(truncateMessage(message))
+  constructor(code: string, params?: Record<string, MessageParam>, status = 502) {
+    super(userMessage(code, params))
     this.name = 'LlmError'
     this.status = status
   }
+}
+
+/** Causa di un errore di rete come parametro: il testo di fetch (troncato) o "errore di rete". */
+export function networkCause(err: any): MessageParam {
+  const text = err?.cause?.message || err?.message
+  return text ? truncateMessage(String(text)) : { code: 'errors.network' }
 }
 
 /**
@@ -186,21 +196,21 @@ export function isLlmConfigured(config: Pick<LlmConfig, 'base_url' | 'api_key'>)
 
 /** Verifica minima della config prima di chiamare il provider. */
 export function assertLlmConfig(config: LlmConfig): void {
-  if (!config.base_url) throw new LlmError('Base URL del provider LLM mancante. Configuralo nelle Impostazioni.', 400)
+  if (!config.base_url) throw new LlmError('errors.llm.baseUrlMissing', undefined, 400)
   if (!config.api_key && !isLocalBaseUrl(config.base_url)) {
-    throw new LlmError('API Key LLM mancante per un provider remoto. Configurala nelle Impostazioni.', 400)
+    throw new LlmError('errors.llm.apiKeyMissing', undefined, 400)
   }
 }
 
-async function readProviderError(resp: Response): Promise<string> {
+async function readProviderError(resp: Response): Promise<MessageParam> {
   const text = await resp.text().catch(() => '')
   try {
     const json = JSON.parse(text)
     const msg = json?.error?.message || json?.message || (typeof json?.error === 'string' ? json.error : '')
-    if (msg) return String(msg)
+    if (msg) return truncateMessage(String(msg))
   } catch {}
   // Mai il corpo grezzo (es. pagine HTML): solo lo status testuale
-  return resp.statusText || 'risposta non valida'
+  return resp.statusText || { code: 'errors.llm.invalidResponse' }
 }
 
 export async function chatCompletion(opts: {
@@ -228,20 +238,22 @@ export async function chatCompletion(opts: {
       signal: AbortSignal.timeout(LLM_TIMEOUT_MS),
     })
   } catch (err: any) {
-    const reason = err?.name === 'TimeoutError' ? `timeout dopo ${LLM_TIMEOUT_MS / 1000}s` : (err?.cause?.message || err?.message || 'errore di rete')
-    throw new LlmError(`Impossibile raggiungere il provider LLM (${normalizeBaseUrl(config.base_url)}): ${reason}`, 502)
+    const detail = err?.name === 'TimeoutError'
+      ? { code: 'errors.llm.timeout', params: { seconds: LLM_TIMEOUT_MS / 1000 } }
+      : networkCause(err)
+    throw new LlmError('errors.llm.unreachable', { url: normalizeBaseUrl(config.base_url), detail }, 502)
   }
 
   if (!resp.ok) {
     const msg = await readProviderError(resp)
-    throw new LlmError(`Errore dal provider LLM (${resp.status}): ${msg}`, resp.status)
+    throw new LlmError('errors.llm.providerError', { status: resp.status, detail: msg }, resp.status)
   }
 
   let data: any = {}
   try {
     data = await resp.json()
   } catch {
-    throw new LlmError('Risposta del provider LLM non in formato JSON.', 502)
+    throw new LlmError('errors.llm.notJson', undefined, 502)
   }
   const content = data?.choices?.[0]?.message?.content
   return { content: typeof content === 'string' ? content : '', model, raw: data }

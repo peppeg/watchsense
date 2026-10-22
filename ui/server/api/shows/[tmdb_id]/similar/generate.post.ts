@@ -1,5 +1,6 @@
 import { requireMediaType } from '../../../../utils/sync-helpers'
 import { generateAiSimilar, isLikedShow, readCachedAiSimilar } from '../../../../utils/ai-similar'
+import { errorDetail, userError, userMessage } from '../../../../utils/user-message'
 
 // Genera (chiamata LLM) e salva in show_ai_similar i consigli AI per un titolo con 👍.
 // Se sono già in cache li restituisce senza rigenerarli, salvo `force: true` nel body.
@@ -14,7 +15,7 @@ export default defineEventHandler(async (event) => {
   const mediaType = requireMediaType(getQuery(event).type ?? body?.media_type)
 
   if (!isLikedShow(tmdbId, mediaType)) {
-    throw createError({ statusCode: 409, message: 'I consigli AI sono disponibili solo per i titoli con 👍 che contano per il profilo dei gusti.' })
+    throw userError(409, userMessage('errors.similar.notLiked'))
   }
 
   if (body?.force !== true) {
@@ -27,10 +28,10 @@ export default defineEventHandler(async (event) => {
     similar = await generateAiSimilar(tmdbId, mediaType)
   } catch (err: any) {
     console.error('Error generating AI tailored similar shows:', err)
-    throw createError({ statusCode: 502, message: `Generazione dei consigli AI non riuscita: ${err?.message || err}` })
+    throw userError(502, userMessage('errors.similar.failed', { detail: errorDetail(err) }))
   }
   if (!similar) {
-    throw createError({ statusCode: 502, message: 'Il modello non ha restituito consigli utilizzabili.' })
+    throw userError(502, userMessage('errors.similar.empty'))
   }
   return { similar, isAiTailored: true, cached: false }
 })
