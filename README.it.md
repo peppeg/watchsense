@@ -89,6 +89,26 @@ docker compose pull && docker compose up -d
 
 Le migrazioni del database in sospeso vengono applicate all'avvio ([Aggiornamenti dello schema](docs/CONFIGURATION.it.md#aggiornamenti-dello-schema)). Prima fai un backup di `./data/`: il database **e** `secret.key`, vedi [Backup e ripristino](docs/CONFIGURATION.it.md#backup-e-ripristino). Per restare su una versione, sostituisci `latest` in `docker-compose.yml` con un tag come `1.0.1` o `1`.
 
+### Interfacce compose (Portainer, Dockge, CasaOS)
+
+Per le interfacce in cui si incolla un compose (stack di Portainer, Dockge, app personalizzata di CasaOS, ...) basta questo: nessun `.env`, la chiave TMDB e il modello AI si impostano nelle Impostazioni al primo avvio.
+
+```yaml
+services:
+  watchsense:
+    image: ghcr.io/peppeg/watchsense:latest
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - watchsense-data:/app/data
+volumes:
+  watchsense-data:
+    name: watchsense-data
+```
+
+Il volume nominato evita il problema dei permessi: queste interfacce risolvono un `./data` relativo dentro le proprie cartelle e lo creano come root, mentre Docker e Podman riempiono un volume nominato nuovo a partire dall'immagine, già di proprietà di `node`. Il volume contiene il database **e** `secret.key`: fai il backup a container fermo, ad esempio `docker run --rm -v watchsense-data:/data:ro -v "$PWD":/backup alpine tar czf /backup/watchsense-data.tgz -C /data .` (dettagli in [Backup e ripristino](docs/CONFIGURATION.it.md#backup-e-ripristino)). L'[import da Trakt](docs/CONFIGURATION.it.md#trakt-export-dei-dati) legge i file da `/app/exports` (non c'è un upload): solo se lo usi, aggiungi una cartella dell'host con un percorso assoluto, ad esempio `- /srv/watchsense/exports:/app/exports:ro`, e metti i file nella sua sottocartella `trakt/`.
+
 ### Build dal sorgente
 
 ```bash

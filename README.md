@@ -89,6 +89,26 @@ docker compose pull && docker compose up -d
 
 Pending database migrations are applied at startup ([Schema upgrades](docs/CONFIGURATION.md#schema-upgrades)). Back up `./data/` first: the database **and** `secret.key`, see [Backup and restore](docs/CONFIGURATION.md#backup-and-restore). To stay on a version, replace `latest` in `docker-compose.yml` with a tag such as `1.0.1` or `1`.
 
+### Compose UIs (Portainer, Dockge, CasaOS)
+
+For interfaces where you paste a compose file (Portainer stacks, Dockge, a CasaOS custom app, ...) this is enough: no `.env` needed, the TMDB key and the AI model are set in Settings on first start.
+
+```yaml
+services:
+  watchsense:
+    image: ghcr.io/peppeg/watchsense:latest
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - watchsense-data:/app/data
+volumes:
+  watchsense-data:
+    name: watchsense-data
+```
+
+The named volume avoids the permission problem: these UIs resolve a relative `./data` inside their own folders and create it as root, while Docker and Podman fill a new named volume from the image, already owned by `node`. The volume holds the database **and** `secret.key`: back it up with the container stopped, e.g. `docker run --rm -v watchsense-data:/data:ro -v "$PWD":/backup alpine tar czf /backup/watchsense-data.tgz -C /data .` (more in [Backup and restore](docs/CONFIGURATION.md#backup-and-restore)). The [Trakt import](docs/CONFIGURATION.md#trakt-data-export) reads files from `/app/exports` (there is no upload): only if you use it, add a host folder with an absolute path, e.g. `- /srv/watchsense/exports:/app/exports:ro`, and put the files in its `trakt/` subfolder.
+
 ### Build from source
 
 ```bash
