@@ -155,7 +155,7 @@ export default defineEventHandler(async (event) => {
           const match = await searchTmdbByTitle(rec.title)
           if (match?.mediaType === 'movie') {
             // WatchSense consiglia solo serie: un abbinamento a un film non si salva
-            console.log(`Scartata raccomandazione abbinata a un film: ${rec.title} (TMDB movie ${match.tmdbId})`)
+            console.log(`Discarded recommendation matched to a film: ${rec.title} (TMDB movie ${match.tmdbId})`)
             continue
           }
           if (match) {
@@ -178,7 +178,7 @@ export default defineEventHandler(async (event) => {
           `).get(tmdbId, mediaType, rec.title, finalTitle)
 
           if (alreadyWatched) {
-            console.log(`Scartata raccomandazione già vista dall'utente: ${rec.title} (TMDB: ${tmdbId})`)
+            console.log(`Discarded recommendation already watched: ${rec.title} (TMDB: ${tmdbId})`)
             continue
           }
         }

@@ -18,6 +18,6 @@ export const localeDefaultsMigration: Migration = {
     for (const [key, value] of [['app_locale', 'it'], ['tmdb_language', 'it-IT'], ['tmdb_region', 'IT']]) {
       written += insert.run(key, value).changes
     }
-    if (written > 0) console.log(`[db] v10: lingua e regione italiane impostate (${written} chiavi)`)
+    if (written > 0) console.log(`[db] v10: Italian language and region set (${written} key(s))`)
   },
 }

@@ -38,10 +38,10 @@ export default defineNitroPlugin(() => {
       if (isDue('last_cron_netflix', getNetflixSyncIntervalHours() * ONE_HOUR)) {
         const cookies = getSecretConfig('netflix_cookies', db).value
         if (cookies) {
-          console.log('[WatchSense Scheduler] Avvio sincronizzazione Netflix automatica...')
+          console.log('[WatchSense Scheduler] Starting automatic Netflix sync...')
           try {
             await $fetch('/api/sync/netflix', { method: 'POST', body: { cookies }, headers: internalAuthHeaders() })
-            console.log('[WatchSense Scheduler] Sincronizzazione Netflix completata.')
+            console.log('[WatchSense Scheduler] Netflix sync completed.')
           } catch (err: any) {
             const message = err.data?.message || err.message
             // L'endpoint indica se Netflix ha rifiutato i cookie ('auth'); ogni altro errore è generico.
@@ -50,7 +50,7 @@ export default defineNitroPlugin(() => {
             setSyncStatus('netflix', false, typeof data?.code === 'string'
               ? { message, code: data.code, params: data.params, notes: data.notes }
               : message, data?.reason === 'auth' ? 'auth' : 'error')
-            console.error('[WatchSense Scheduler] Errore sync Netflix:', message)
+            console.error('[WatchSense Scheduler] Netflix sync error:', message)
           }
         }
         setConfig.run('last_cron_netflix', new Date().toISOString())
@@ -60,18 +60,18 @@ export default defineNitroPlugin(() => {
       if (isDue('last_cron_stremio', STREMIO_SYNC_INTERVAL_HOURS * ONE_HOUR)) {
         const authKey = getSecretConfig('stremio_auth_key', db).value
         if (authKey) {
-          console.log('[WatchSense Scheduler] Avvio sincronizzazione Stremio automatica...')
+          console.log('[WatchSense Scheduler] Starting automatic Stremio sync...')
           try {
             await $fetch('/api/sync/stremio', { method: 'POST', body: { authKey }, headers: internalAuthHeaders() })
-            console.log('[WatchSense Scheduler] Sincronizzazione Stremio completata.')
+            console.log('[WatchSense Scheduler] Stremio sync completed.')
           } catch (err: any) {
-            console.error('[WatchSense Scheduler] Errore sync Stremio:', err.data?.message || err.message)
+            console.error('[WatchSense Scheduler] Stremio sync error:', err.data?.message || err.message)
           }
         }
         setConfig.run('last_cron_stremio', new Date().toISOString())
       }
     } catch (e: any) {
-      console.error('[WatchSense Scheduler] Errore nel worker scheduler:', e.message)
+      console.error('[WatchSense Scheduler] Scheduler worker error:', e.message)
     } finally {
       running = false
     }

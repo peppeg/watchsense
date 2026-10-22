@@ -11,12 +11,12 @@ export default defineNitroPlugin(() => {
   const envPath = join(findProjectRoot(), '.env')
   if (!existsSync(envPath)) return
   if (typeof process.loadEnvFile !== 'function') {
-    console.warn(`[WatchSense] ${envPath} ignorato: serve Node.js ≥ 20.12 per caricarlo.`)
+    console.warn(`[WatchSense] ${envPath} ignored: loading it requires Node.js ≥ 20.12.`)
     return
   }
   try {
     process.loadEnvFile(envPath)
   } catch (e: any) {
-    console.error(`[WatchSense] Impossibile leggere ${envPath}:`, e.message)
+    console.error(`[WatchSense] Cannot read ${envPath}:`, e.message)
   }
 })

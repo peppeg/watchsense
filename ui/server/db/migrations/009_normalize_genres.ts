@@ -32,6 +32,6 @@ export const normalizeGenresMigration: Migration = {
       const normalized = JSON.stringify(normalizeGenres(list))
       if (normalized !== value) rows += update.run(normalized, value).changes
     }
-    if (rows > 0) console.log(`[db] v9: generi normalizzati su ${rows} righe`)
+    if (rows > 0) console.log(`[db] v9: genres normalized on ${rows} row(s)`)
   },
 }

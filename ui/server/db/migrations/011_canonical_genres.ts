@@ -29,6 +29,6 @@ export const canonicalGenresMigration: Migration = {
       const canonical = JSON.stringify(normalizeGenres(list))
       if (canonical !== value) rows += update.run(canonical, value).changes
     }
-    if (rows > 0) console.log(`[db] v11: generi riportati ai nomi inglesi su ${rows} righe`)
+    if (rows > 0) console.log(`[db] v11: genres restored to English names on ${rows} row(s)`)
   },
 }

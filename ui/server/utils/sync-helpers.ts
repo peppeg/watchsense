@@ -367,7 +367,7 @@ export function setSyncStatus(service: string, ok: boolean, message: string | Us
       .prepare('INSERT OR REPLACE INTO config (key, value) VALUES (?, ?)')
       .run(`last_sync_status_${service}`, JSON.stringify(status))
   } catch (e: any) {
-    console.error(`[WatchSense] Impossibile salvare lo stato sync ${service}:`, e.message)
+    console.error(`[WatchSense] Cannot save the ${service} sync state:`, e.message)
   }
 }
 
