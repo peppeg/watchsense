@@ -39,14 +39,18 @@ ENV NODE_ENV=production \
     SCHEMA_PATH=/app/db/schema.sql \
     EXPORTS_PATH=/app/exports
 
-# Create directories for persistent storage and grant permissions to node user
+# Create directories for persistent storage owned by the node user (uid 1000): a new
+# named volume is filled from /app/data with this owner
 RUN mkdir -p /app/data /app/exports && chown -R node:node /app
 
 # Copy db schema and compiled Nuxt output
 COPY --from=builder /app/db /app/db
 COPY --from=builder --chown=node:node /app/ui/.output /app/.output
 
-USER node
+# No USER: the container starts as root only to fix the owner of /app/data, then the
+# entrypoint runs the app as PUID:PGID (default 1000:1000). With --user it runs as given.
+COPY --chmod=0755 docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+ENTRYPOINT ["docker-entrypoint.sh"]
 
 EXPOSE 3000
 
