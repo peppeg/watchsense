@@ -12,6 +12,7 @@ Le etichette citate sono quelle dell'interfaccia in italiano (per cambiare lingu
 - [Variabili d'ambiente](#variabili-dambiente)
 - [Avvio come servizio systemd utente](#avvio-come-servizio-systemd-utente)
 - [Backup e ripristino](#backup-e-ripristino)
+  - [Esporta i tuoi dati](#esporta-i-tuoi-dati)
   - [Aggiornamenti dello schema](#aggiornamenti-dello-schema)
 
 ## TMDB
@@ -327,6 +328,15 @@ I segreti salvati nel database sono cifrati con la chiave in `data/secret.key` (
 - **Fai un backup separato della chiave** e conservalo con cura, meglio non accanto ai backup del database: il solo database non rivela i segreti, database e chiave insieme sì. Senza la chiave, dopo un ripristino i cookie, le chiavi e il token del bookmarklet salvati vanno reinseriti (tutto il resto si ripristina normalmente).
 - Tieni privati i backup, ad esempio `chmod 600 watchsense-*.db secret.key`: contengono comunque la cronologia e le impostazioni.
 - Per ripristinare su una macchina nuova, copia `secret.key` in `data/` (o imposta la stessa `WATCHSENSE_SECRET_KEY`) prima di avviare l'app.
+
+### Esporta i tuoi dati
+
+**Impostazioni → Sistema → Esporta i tuoi dati** scarica i tuoi dati in formati aperti, da conservare o usare altrove. Non è un backup: non si può reimportare (per quello c'è il backup del database qui sopra).
+
+- **Cronologia di visione (CSV)**: una riga per ogni episodio visto, da tutte le piattaforme, dal più vecchio. Colonne (nomi fissi in inglese): `title` (nome TMDB, o il titolo importato se non abbinato), `original_title` (come importato), `season`, `episode` (quando la piattaforma li indica), `episode_title`, `platform`, `watched_at`, `tmdb_id`, `manual`. UTF-8 con BOM, così Excel mostra bene gli accenti.
+- **Profilo completo (JSON)**: le tue serie (episodi visti, piattaforme, date, stato di visione, 👍/👎, salvate, ignorate o escluse dal profilo), i titoli senza abbinamento TMDB, note sui gusti, sintesi AI e profilo dei gusti, serie salvate, consigli passati e la stessa cronologia degli episodi.
+
+Solo serie TV: i film non vengono esportati, come nel resto di WatchSense. Password, cookie, chiavi API, token del bookmarklet e altre impostazioni non sono mai inclusi. Con il [login](#accesso-e-sicurezza) attivo i download richiedono una sessione aperta (o `Authorization: Bearer`): `GET /api/export/history.csv` e `GET /api/export/profile.json`.
 
 ### Aggiornamenti dello schema
 

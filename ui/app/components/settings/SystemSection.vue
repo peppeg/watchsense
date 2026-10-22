@@ -34,6 +34,26 @@
       <p class="text-[15px] leading-relaxed text-zinc-300">{{ t('settings.system.privacyText') }}</p>
     </SettingsCard>
 
+    <!-- Esporta i tuoi dati: download diretti (il cookie di sessione viaggia con il link) -->
+    <SettingsCard :title="t('settings.system.exportTitle')" :intro="t('settings.system.exportIntro')">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div class="flex flex-col items-start gap-2">
+          <a href="/api/export/history.csv" download class="ws-btn">
+            <UIcon name="i-lucide-file-spreadsheet" aria-hidden="true" />
+            <span>{{ t('settings.system.exportHistory') }}</span>
+          </a>
+          <p class="text-sm leading-relaxed text-zinc-400">{{ t('settings.system.exportHistoryHelp') }}</p>
+        </div>
+        <div class="flex flex-col items-start gap-2">
+          <a href="/api/export/profile.json" download class="ws-btn">
+            <UIcon name="i-lucide-file-json" aria-hidden="true" />
+            <span>{{ t('settings.system.exportProfile') }}</span>
+          </a>
+          <p class="text-sm leading-relaxed text-zinc-400">{{ t('settings.system.exportProfileHelp') }}</p>
+        </div>
+      </div>
+    </SettingsCard>
+
     <!-- Lista "Per iniziare" nascosta dalla Home: si può riportare -->
     <SettingsCard v-if="config.onboarding?.dismissed" :title="t('settings.system.onboardingTitle')" :intro="t('settings.system.onboardingText')">
       <div>

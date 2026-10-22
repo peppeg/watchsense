@@ -16,6 +16,7 @@ WatchSense raccoglie ciò che hai visto su **Netflix, Prime Video, Stremio e Tra
 - **Arricchimento TMDB**: titoli e trame nella tua lingua, poster, generi, parole chiave e piattaforme streaming della tua regione.
 - **Raccomandazioni LLM** da qualsiasi endpoint compatibile OpenAI (Kilo, OpenRouter, OpenAI, Groq, DeepSeek, Mistral, Ollama, LM Studio, ...), con preset nella pagina Impostazioni.
 - **Ciclo di feedback**: voti, stato delle serie e note libere sui gusti orientano i suggerimenti successivi.
+- **Export** di tutta la cronologia su tutte le piattaforme (CSV) e del profilo di spettatore (JSON), quando vuoi.
 - **Un solo file SQLite** per tutti i dati; gira come singolo processo Node.js o singolo container.
 
 ## Fonti supportate

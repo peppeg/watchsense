@@ -12,6 +12,7 @@ UI labels are quoted as they appear in the English UI (see [Language and region]
 - [Environment variables](#environment-variables)
 - [Running as a systemd user service](#running-as-a-systemd-user-service)
 - [Backup and restore](#backup-and-restore)
+  - [Export your data](#export-your-data)
   - [Schema upgrades](#schema-upgrades)
 
 ## TMDB
@@ -327,6 +328,15 @@ The saved secrets in the database are encrypted with the key in `data/secret.key
 - **Back up the key separately** and keep it safe, ideally not next to the database backups: the database alone does not reveal the secrets, the database together with the key does. Without the key, the saved cookies, keys and bookmarklet token have to be entered again after a restore (everything else is restored normally).
 - Keep backups private, e.g. `chmod 600 watchsense-*.db secret.key`: they still contain your viewing history and settings.
 - When restoring onto a new machine, copy `secret.key` back into `data/` (or set the same `WATCHSENSE_SECRET_KEY`) before starting the app.
+
+### Export your data
+
+**Settings → System → Export your data** downloads your data in open formats, to keep or to use elsewhere. It is not a backup: it cannot be imported back (use the database backup above for that).
+
+- **Viewing history (CSV)**: one row per episode watched, from every platform, oldest first. Columns: `title` (TMDB name, or the imported title if unmatched), `original_title` (as imported), `season`, `episode` (when the platform gives them), `episode_title`, `platform`, `watched_at`, `tmdb_id`, `manual`. UTF-8 with BOM, so Excel shows accents correctly.
+- **Full profile (JSON)**: your series (episodes watched, platforms, dates, watch status, 👍/👎, saved, ignored or excluded from the profile), the titles without a TMDB match, your taste notes, AI summary and taste profile, saved series, past recommendations and the same episode history.
+
+TV series only: films are not exported, like everywhere else in WatchSense. Passwords, cookies, API keys, the bookmarklet token and other settings are never included. With [login](#access-and-security) enabled, the downloads need a signed-in session (or `Authorization: Bearer`): `GET /api/export/history.csv` and `GET /api/export/profile.json`.
 
 ### Schema upgrades
 
